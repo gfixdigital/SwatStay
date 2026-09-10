@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { ArrowDown, Check, MapPin, PhoneCall, ShieldCheck } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -5,6 +6,8 @@ import { CustomTripForm } from "@/components/CustomTripForm";
 import { PageEnter, Reveal } from "@/components/Animated";
 
 const image = "https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=1800&q=85";
+
+export const metadata: Metadata = { title: "Custom Swat Trip Planner | SwatStay", description: "Tell SwatStay your dates, group needs, destinations, and preferred service level for a practical custom trip plan." };
 
 export default function CustomTripPage() {
   return <><Header/><PageEnter><main className="bg-snow">

@@ -1,30 +1,16 @@
-"use client";
+import type { Metadata } from "next";
+import HomePageContent from "./HomePageContent";
 
-import { useState } from "react";
-import { CheckCheck, FilePenLine, Map, Mountain, PhoneCall, ShieldCheck, WalletCards } from "lucide-react";
-import Link from "next/link";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
-import { HeroSearch } from "@/components/HeroSearch";
-import { PackageCard } from "@/components/PackageCard";
-import { DestinationCard } from "@/components/DestinationCard";
-import { PageEnter, Reveal } from "@/components/Animated";
-import { ScrollCount } from "@/components/ScrollCount";
-import { packages } from "@/data/packages";
-import { destinations } from "@/data/destinations";
+export const metadata: Metadata = {
+  title: "SwatStay - Verified Swat Tour Packages",
+  description: "Book call-confirmed Swat tour packages with hotels, transport, meals, guides, and local provider support.",
+  openGraph: {
+    title: "SwatStay - Verified Swat Tour Packages",
+    description: "Practical Swat travel planning with reviewed local providers and call-confirmed bookings.",
+    type: "website",
+  },
+};
 
 export default function HomePage() {
-  const [filter, setFilter] = useState("all");
-  const shown = filter === "all" ? packages : packages.filter((item) => item.destination === filter || (filter === "Madyan" && item.destination === "Swat"));
-  return <><Header/><PageEnter><main>
-    <section className="relative z-20 flex min-h-[570px] items-center overflow-visible text-white"><div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url(https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=2200&q=85)" }}/><div className="absolute inset-0 bg-gradient-to-r from-pine/90 via-pine/65 to-pine/10"/><div className="container relative py-14 md:py-16"><Reveal><div className="eyebrow flex items-center gap-2 text-[#d9eee4]"><span className="h-px w-7 bg-current"/> PLAN YOUR SWAT ESCAPE</div><h1 className="max-w-3xl font-display text-4xl font-extrabold leading-[1.08] tracking-tight sm:text-5xl md:text-6xl">Your Swat trip, planned by people who know the valley</h1><p className="mt-4 max-w-xl text-base text-[#e9f3ed] md:text-lg">Compare practical stays in Kalam, Malam Jabba, Bahrain, and Madyan, then send one request for the local details.</p><div className="mt-7"><HeroSearch onSearch={setFilter}/></div></Reveal></div></section>
-    <section className="relative z-0 border-b border-border bg-mist"><div className="container grid gap-3 py-4 sm:grid-cols-2 lg:grid-cols-4"><Trust icon={<ShieldCheck/>} title="Verified local providers" detail="Reviewed before receiving requests"/><Trust icon={<PhoneCall/>} title="Call-confirmed bookings" detail="A real team member confirms details"/><Trust icon={<Mountain/>} title="Three languages" detail="Urdu, English, and Chinese support"/><Trust icon={<WalletCards/>} title="Flexible payment" detail="Advance and full payment options"/></div></section>
-    <section id="packages" className="section"><div className="container"><Reveal><div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><div className="eyebrow">PLAN YOUR STAY</div><h2 className="font-display text-3xl font-bold md:text-4xl">Packages built for the way you travel</h2></div><div className="flex items-center gap-3"><ScrollCount value={shown.length} label="packages to explore"/><a href="/packages" className="font-semibold text-river">View all ↗</a></div></div></Reveal><div className="grid gap-5 pb-2 md:grid-cols-2 lg:grid-cols-3 lg:items-start">{shown.map((item, index) => <PackageCard key={item.slug} item={item} index={index} arc position={index === 0 ? "left" : index === 1 ? "center" : "right"}/>)}</div>{!shown.length && <p className="mt-5 rounded-brand border border-dashed border-border bg-white p-7 text-center text-stone">No packages match that destination yet.</p>}</div></section>
-    <section id="how-it-works" className="section bg-mist"><div className="container"><Reveal><div className="mb-10 text-center"><div className="eyebrow">A CLEARER WAY TO TRAVEL</div><h2 className="font-display text-3xl font-bold md:text-4xl">From your first idea to a confirmed trip</h2></div></Reveal><div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4"><Step number="01" icon={<Map/>} title="Choose a package" text="Compare destinations, trip length, service levels, and what is included."/><Step number="02" icon={<FilePenLine/>} title="Submit your request" text="Tell us who is traveling, when you are coming, and what you need."/><Step number="03" icon={<PhoneCall/>} title="Confirm by call" text="Our team calls to check details, availability, and payment preferences."/><Step number="04" icon={<CheckCheck/>} title="Providers are booked" text="Hotels, transport, meals, and guides are coordinated after confirmation."/></div></div></section>
-    <section id="destinations" className="section"><div className="container"><Reveal><div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><div className="eyebrow">SEE THE VALLEY</div><h2 className="font-display text-3xl font-bold md:text-4xl">Start with a place you want to remember</h2></div><p className="max-w-sm text-sm text-stone">Plan around the places that make Swat special, with a local team to connect the details.</p></div></Reveal><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:grid-rows-2">{destinations.map((destination) => <DestinationCard key={destination.name} destination={destination}/>)}</div></div></section>
-    <section id="about" className="bg-pine py-14 text-white"><div className="container flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between"><Reveal><div><div className="eyebrow text-[#b9d8c7]">HAVE A DIFFERENT PLAN?</div><h2 className="font-display text-4xl font-bold">Need a custom Swat plan?</h2><p className="mt-4 max-w-xl text-[#d6e8dc]">Tell us your dates, budget, people count, and preferred hotel level. Our team will call you with a clear plan.</p></div></Reveal><Link href="/custom-trip" className="button shrink-0 self-start bg-white text-pine hover:bg-mist sm:self-auto">Build a custom trip <span aria-hidden="true">↗</span></Link></div></section>
-  </main></PageEnter><Footer/></>;
+  return <HomePageContent />;
 }
-
-function Trust({ icon, title, detail }: { icon: React.ReactNode; title: string; detail: string }) { return <div className="group flex items-center gap-3 rounded-brand border border-border/80 bg-white/60 px-3 py-3 transition hover:-translate-y-0.5 hover:border-river/40 hover:bg-white"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-mist text-river transition group-hover:bg-river group-hover:text-white [&>svg]:h-5 [&>svg]:w-5">{icon}</span><span><strong className="block text-[13px] font-semibold text-charcoal">{title}</strong><small className="mt-0.5 block text-[11px] leading-4 text-stone">{detail}</small></span></div>; }
-function Step({ number, icon, title, text }: { number: string; icon: React.ReactNode; title: string; text: string }) { return <div className="border-t border-border pt-5"><span className="text-xs font-bold tracking-wider text-amber">{number}</span><span className="my-6 block text-pine">{icon}</span><h3 className="font-display text-lg font-bold">{title}</h3><p className="mt-2 text-sm text-stone">{text}</p></div>; }

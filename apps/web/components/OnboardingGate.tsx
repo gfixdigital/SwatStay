@@ -4,8 +4,15 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Mountain, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 
+export const ONBOARDING_KEY = "swatstay-onboarding-seen";
+
 export function OnboardingGate({ children }: { children: React.ReactNode }) {
-  const [loading, setLoading] = useState(true);
-  useEffect(() => { const timer = window.setTimeout(() => setLoading(false), 1250); return () => window.clearTimeout(timer); }, []);
-  return <><AnimatePresence>{loading && <motion.div initial={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .45 }} className="fixed inset-0 z-[100] grid place-items-center overflow-hidden bg-pine text-white"><motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .45 }} className="relative z-10 text-center"><span className="mx-auto grid h-16 w-16 place-items-center rounded-brand bg-white/10 ring-1 ring-white/20"><Mountain size={32}/></span><div className="mt-5 font-display text-3xl font-extrabold">Swat<span className="text-[#9bd6b6]">Stay</span></div><p className="mt-2 text-sm text-[#c9e3d3]">Planning your way into the valley</p><div className="mx-auto mt-7 flex items-center justify-center gap-2"><span className="h-2 w-2 animate-pulse rounded-full bg-white"/><span className="h-2 w-2 animate-pulse rounded-full bg-white [animation-delay:150ms]"/><span className="h-2 w-2 animate-pulse rounded-full bg-white [animation-delay:300ms]"/></div><div className="mt-5 flex items-center justify-center gap-2 text-[11px] uppercase tracking-[.14em] text-[#9bd6b6]"><ShieldCheck size={14}/> Local travel, clearly arranged</div></motion.div><div className="absolute -bottom-24 left-1/2 h-72 w-[min(720px,120vw)] -translate-x-1/2 rounded-[50%] border border-white/10"/><div className="absolute -bottom-32 left-1/2 h-72 w-[min(900px,140vw)] -translate-x-1/2 rounded-[50%] border border-white/5"/></motion.div>}</AnimatePresence><div className={loading ? "h-screen overflow-hidden" : ""}>{children}</div></>;
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    if (window.localStorage.getItem(ONBOARDING_KEY)) return;
+    setLoading(true);
+    const timer = window.setTimeout(() => { window.localStorage.setItem(ONBOARDING_KEY, "true"); setLoading(false); }, 900);
+    return () => window.clearTimeout(timer);
+  }, []);
+  return <><AnimatePresence>{loading && <motion.div initial={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .3 }} className="fixed inset-0 z-[100] grid place-items-center overflow-hidden bg-pine text-white"><div className="relative z-10 text-center"><span className="mx-auto grid h-14 w-14 place-items-center rounded-brand bg-white/10 ring-1 ring-white/20"><Mountain size={28}/></span><div className="mt-4 font-display text-2xl font-extrabold">Swat<span className="text-[#9bd6b6]">Stay</span></div><p className="mt-2 text-sm text-[#c9e3d3]">Planning your way into the valley</p><div className="mt-5 flex items-center justify-center gap-2 text-[11px] uppercase tracking-[.14em] text-[#9bd6b6]"><ShieldCheck size={14}/> Local travel, clearly arranged</div></div></motion.div>}</AnimatePresence><div className={loading ? "h-screen overflow-hidden" : ""}>{children}</div></>;
 }
