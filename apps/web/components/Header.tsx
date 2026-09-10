@@ -1,13 +1,13 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpRight, Bookmark, Menu, MessageCircle, Mountain, X } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Menu, MessageCircle, Mountain, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import type { TranslationKey } from "@/hooks/useLanguage";
 import { useLanguage } from "@/hooks/useLanguage";
-import { CurrencySelector, LanguageSelector } from "./PreferenceSelectors";
+import { MobileTravelPreferences, TravelPreferencesMenu } from "./TravelPreferencesMenu";
 import { LoginModal } from "./LoginModal";
 
 const links: { key: TranslationKey; href: string }[] = [
@@ -48,11 +48,10 @@ export function Header() {
           </Link>)}
         </nav>
         <div className="ml-auto flex items-center gap-2">
-          <div className="hidden items-center gap-2 border-l border-border pl-3 xl:flex"><LanguageSelector/><CurrencySelector/></div>
-          <Link href="/saved-packages" aria-label={t("saved")} title={t("saved")} className={`hidden h-10 w-10 items-center justify-center rounded-brand border md:inline-flex ${pathname.startsWith("/saved-packages") ? "border-pine bg-pine text-white" : "border-border bg-white text-pine hover:border-river hover:bg-mist"}`}><Bookmark size={17}/></Link>
+          <TravelPreferencesMenu/>
           <button type="button" className="hidden px-2 text-[13px] font-semibold text-stone hover:text-pine md:block" onClick={() => setLogin(true)}>{t("login")}</button>
           <a href="https://wa.me/92946000000" target="_blank" rel="noreferrer" className="hidden items-center gap-1 text-xs font-semibold text-river hover:text-pine 2xl:flex"><MessageCircle size={15}/>{t("whatsapp")}</a>
-          <Link href="/packages" className="button hidden min-h-10 gap-2 bg-pine px-3 text-xs text-white hover:bg-[#0e2c22] sm:inline-flex md:px-4">{t("bookTrip")}<ArrowUpRight size={15}/></Link>
+          <Link href="/packages" className="hidden h-11 items-stretch overflow-hidden rounded-brand bg-pine text-sm font-semibold text-white shadow-[0_5px_16px_rgba(18,55,42,.16)] hover:bg-[#0e2c22] sm:inline-flex"><span className="flex items-center px-4">{t("bookTrip")}</span><span className="grid w-10 place-items-center border-l border-white/20"><ArrowRight size={16}/></span></Link>
           <button type="button" className="grid h-11 w-11 place-items-center rounded-brand border border-border bg-white text-pine transition hover:border-river hover:bg-mist lg:hidden" onClick={() => setOpen((value) => !value)} aria-label={open ? "Close menu" : "Open menu"} aria-expanded={open} aria-controls="mobile-navigation">
             {open ? <X size={22}/> : <Menu size={22}/>}<span className="sr-only">{open ? "Close menu" : "Open menu"}</span>
           </button>
@@ -63,7 +62,7 @@ export function Header() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 top-[72px] z-10 bg-charcoal/25 lg:hidden" onClick={closeMenu}/>
           <motion.nav id="mobile-navigation" initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: .2, ease: "easeOut" }} className="relative z-20 border-t border-border bg-snow shadow-editorial lg:hidden" aria-label="Mobile navigation">
             <div className="container max-h-[calc(100dvh-72px)] overflow-y-auto py-5">
-              <div className="mb-4 grid grid-cols-2 gap-3 border-b border-border pb-4"><LanguageSelector className="rounded-brand border border-border bg-white px-3"/><CurrencySelector className="rounded-brand border border-border bg-white px-3"/></div>
+              <div className="mb-4"><MobileTravelPreferences/></div>
               <div className="grid gap-1">{[...links, { key: "saved" as TranslationKey, href: "/saved-packages" }].map(({ key, href }, index) => <Link key={href} href={href} onClick={closeMenu} className={`flex items-center justify-between border-b border-border/70 px-1 py-3 font-display text-lg font-bold ${isActive(href) ? "text-pine" : "text-charcoal"}`}><span><span className="mr-3 text-[10px] font-semibold text-amber">0{index + 1}</span>{t(key)}</span><ArrowUpRight size={17} className="text-river"/></Link>)}</div>
               <div className="mt-5 grid grid-cols-2 gap-3"><a href="https://wa.me/92946000000" target="_blank" rel="noreferrer" className="button border-border bg-white text-river hover:bg-mist"><MessageCircle size={15}/>{t("whatsapp")}</a><Link href="/packages" onClick={closeMenu} className="button bg-pine text-white hover:bg-[#0e2c22]">{t("bookTrip")}<ArrowUpRight size={15}/></Link></div>
               <button type="button" onClick={() => { setLogin(true); closeMenu(); }} className="mt-4 w-full text-sm font-semibold text-stone">{t("login")}</button>

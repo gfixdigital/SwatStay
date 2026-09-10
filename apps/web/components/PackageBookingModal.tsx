@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { CheckCircle2, MessageCircle, PhoneCall, X } from "lucide-react";
+import { ArrowRight, CheckCircle2, MessageCircle, PhoneCall, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/hooks/useLanguage";
 import { BookingForm } from "./BookingForm";
@@ -42,14 +42,14 @@ export function PackageBookingModal({ packageTitle, packageImage, price, duratio
             <p className="flex gap-2"><CheckCircle2 size={15} className="shrink-0 text-river"/>No charge when sending a request</p>
             <p className="flex gap-2"><PhoneCall size={15} className="shrink-0 text-river"/>A team member confirms the plan</p>
           </div>
-          <button type="button" onClick={() => setOpen(true)} className="button w-full bg-pine text-white hover:bg-[#0e2c22]">{t("requestPackage")}</button>
+          <button type="button" onClick={() => setOpen(true)} className="flex h-12 w-full items-stretch overflow-hidden rounded-brand bg-pine text-sm font-semibold text-white shadow-[0_6px_18px_rgba(18,55,42,.16)] hover:bg-[#0e2c22]"><span className="flex flex-1 items-center justify-start px-4">{t("requestPackage")}</span><span className="grid w-12 place-items-center border-l border-white/20"><ArrowRight size={17}/></span></button>
           <a href="https://wa.me/92946000000" target="_blank" rel="noreferrer" className="mt-3 flex min-h-11 items-center justify-center gap-2 rounded-brand border border-border text-sm font-semibold text-river hover:bg-mist"><MessageCircle size={16}/> Ask on WhatsApp</a>
         </div>
       </div>
     </aside>
 
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-white p-3 shadow-[0_-8px_24px_rgba(18,55,42,.10)] lg:hidden">
-      <div className="mx-auto flex max-w-xl items-center gap-3"><div className="min-w-0 flex-1"><CurrencyPrice amountPkr={price} className="font-display text-lg text-pine"/></div><button type="button" onClick={() => setOpen(true)} className="button min-h-11 bg-pine px-4 text-sm text-white">{t("requestBooking")}</button></div>
+      <div className="mx-auto flex max-w-xl items-center gap-3"><div className="min-w-0 flex-1"><CurrencyPrice amountPkr={price} className="font-display text-lg text-pine"/></div><button type="button" onClick={() => setOpen(true)} className="flex h-11 items-stretch overflow-hidden rounded-brand bg-pine text-sm font-semibold text-white"><span className="flex items-center px-4">{t("requestBooking")}</span><span className="grid w-10 place-items-center border-l border-white/20"><ArrowRight size={15}/></span></button></div>
     </div>
 
     <AnimatePresence>

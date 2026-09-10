@@ -22,9 +22,9 @@ export function PackageCard({ item, arc = false, position = "center" }: { item: 
     transition={{ duration: .3, ease: "easeOut" }}
     className={`group relative rounded-brand border border-border bg-white shadow-[0_1px_0_rgba(18,55,42,.04)] transition-shadow hover:z-30 hover:shadow-editorial focus-within:z-30 ${arcClass}`}
   >
-    <div className="relative overflow-hidden rounded-t-brand"><div className="relative h-52 bg-cover bg-center transition-transform duration-300 group-hover:scale-[1.01]" style={{ backgroundImage: `url(${item.image})` }}/><SavedPackageButton slug={item.slug} compact className="absolute right-3 top-3 z-10 bg-white/95 shadow-editorial"/></div>
+    <div className="relative overflow-hidden rounded-t-brand"><div className="relative h-52 bg-cover bg-center transition-transform duration-300 group-hover:scale-[1.01]" style={{ backgroundImage: `url(${item.image})` }}/></div>
     <div className="p-[18px]">
-      <div className="flex justify-between text-xs text-stone"><span className="font-bold text-river">{item.type} · {item.tier}</span><span>{item.duration}</span></div>
+      <div className="flex items-center justify-between gap-3 text-xs text-stone"><span className="font-bold text-river">{item.type} · {item.tier}</span><span className="flex items-center gap-3"><span>{item.duration}</span><SavedPackageButton slug={item.slug} compact/></span></div>
       <h3 className="mt-3 font-display text-xl font-bold">{item.title}</h3>
       <p className="mt-2 flex items-center gap-1 text-xs text-stone"><Route size={15} className="text-river"/> {item.route}</p>
       {hotel && <p className="mt-2 text-xs text-stone"><Hotel size={14} className="mr-1 inline text-river"/>Stay: <strong className="text-charcoal">{hotel.providerName}</strong></p>}

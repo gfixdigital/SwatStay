@@ -31,11 +31,11 @@ export function PackageActions({ slug, title }: { slug: string; title: string })
   }
 
   const whatsappHref = `https://wa.me/?text=${encodeURIComponent(`View ${title} on SwatStay: ${pageUrl}`)}`;
-  return <div className="relative mt-5 flex flex-wrap gap-2">
-    <SavedPackageButton slug={slug}/>
-    <button type="button" onClick={sharePackage} className="button min-h-11 border-border bg-white px-4 text-sm text-pine hover:border-river hover:bg-mist"><Share2 size={17}/>{t("share")}</button>
-    <button type="button" onClick={() => window.print()} className="button min-h-11 border-border bg-white px-4 text-sm text-pine hover:border-river hover:bg-mist"><Printer size={17}/>{t("print")}</button>
-    <a href={whatsappHref} target="_blank" rel="noreferrer" className="button min-h-11 border-border bg-white px-4 text-sm text-river hover:border-river hover:bg-mist"><MessageCircle size={17}/>WhatsApp</a>
+  return <div className="relative mt-5 flex w-fit max-w-full flex-wrap items-center gap-1 rounded-brand border border-border bg-white p-1 shadow-[0_2px_10px_rgba(18,55,42,.05)]">
+    <SavedPackageButton slug={slug} minimal/>
+    <button type="button" onClick={sharePackage} className="inline-flex min-h-10 items-center gap-2 rounded-brand px-3 text-sm font-semibold text-stone hover:bg-mist hover:text-pine"><Share2 size={17}/>{t("share")}</button>
+    <button type="button" onClick={() => window.print()} className="inline-flex min-h-10 items-center gap-2 rounded-brand px-3 text-sm font-semibold text-stone hover:bg-mist hover:text-pine"><Printer size={17}/>{t("print")}</button>
+    <a href={whatsappHref} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center gap-2 rounded-brand px-3 text-sm font-semibold text-river hover:bg-mist hover:text-pine"><MessageCircle size={17}/>WhatsApp</a>
     {message && <div role="status" className="fixed right-4 top-24 z-[100] flex items-center gap-2 rounded-brand border border-border bg-white px-4 py-3 text-sm font-semibold text-pine shadow-editorial"><Check size={16} className="text-river"/>{message}</div>}
   </div>;
 }
