@@ -1,0 +1,19 @@
+import { FormEvent, useState } from "react";
+import { MessageSquareReply } from "lucide-react";
+import { AdminModal } from "../components/AdminModal";
+import { PageHeader } from "../components/PageHeader";
+import { StatusBadge } from "../components/StatusBadge";
+import { supportTickets as initialTickets } from "../data/adminData";
+import type { SupportTicket } from "../types/admin";
+
+export function SupportPage() {
+  const [tickets, setTickets] = useState(initialTickets);
+  const [selected, setSelected] = useState<SupportTicket | null>(null);
+  const [reply, setReply] = useState("");
+  const [nextStatus, setNextStatus] = useState<SupportTicket["status"]>("In progress");
+  const [submitted, setSubmitted] = useState(false);
+  function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); if (!selected) return; setTickets((current) => current.map((ticket) => ticket.id === selected.id ? { ...ticket, status: nextStatus, updatedAt: "Just now" } : ticket)); setSubmitted(true); }
+  return <><PageHeader eyebrow="TRAVELER SUPPORT" title="Support tickets" description="Review booking issues and record a local reply or status update."/><div className="grid gap-3">{tickets.map((ticket) => <article key={ticket.id} className="rounded-lg border border-border bg-white p-4"><div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-center"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="text-xs font-bold text-river">{ticket.id}</span><span className="text-xs text-stone">{ticket.bookingReference}</span><PriorityBadge priority={ticket.priority}/><StatusBadge status={ticket.status}/></div><h2 className="mt-2 font-bold text-charcoal">{ticket.issueType} · {ticket.touristName}</h2><p className="mt-1 text-sm text-stone">{ticket.summary}</p></div><div className="flex shrink-0 items-center justify-between gap-4 lg:justify-end"><div className="text-right text-xs"><span className="block text-stone">Assigned to</span><strong className="mt-1 block text-charcoal">{ticket.assignedTeamMember}</strong><span className="mt-1 block text-stone">{ticket.updatedAt}</span></div><button type="button" className="button-secondary" onClick={() => { setSelected(ticket); setNextStatus(ticket.status === "Open" ? "In progress" : ticket.status); setReply(""); setSubmitted(false); }}><MessageSquareReply size={15}/> Reply</button></div></div></article>)}</div><AdminModal open={Boolean(selected)} onClose={() => setSelected(null)} title={`Support ticket · ${selected?.id ?? ""}`} description={selected ? `${selected.bookingReference} · ${selected.touristName}` : undefined}>{submitted ? <div className="rounded-md border border-[#bdd5c7] bg-[#e8f1ec] p-4 text-sm font-semibold text-pine">Reply and status saved in frontend state.</div> : <form onSubmit={submit} className="space-y-4"><div className="rounded-md bg-snow p-3 text-sm leading-6 text-stone">{selected?.summary}</div><label className="label">Status<select className="field mt-1.5" value={nextStatus} onChange={(event) => setNextStatus(event.target.value as SupportTicket["status"])}><option>Open</option><option>In progress</option><option>Resolved</option></select></label><label className="label">Internal reply<textarea className="field mt-1.5 min-h-28 resize-y py-3" value={reply} onChange={(event) => setReply(event.target.value)} placeholder="Record the team response or next action" required/></label><button type="submit" className="button-primary w-full">Save reply and status</button></form>}</AdminModal></>;
+}
+
+function PriorityBadge({ priority }: { priority: SupportTicket["priority"] }) { const tone = priority === "Urgent" ? "bg-[#fff0ed] text-[#9c3f2e]" : priority === "High" ? "bg-[#fbf3e6] text-[#925d19]" : "bg-mist text-pine"; return <span className={`rounded-md px-2 py-1 text-xs font-semibold ${tone}`}>{priority}</span>; }

@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import { App } from "./App";
 import "./styles.css";
 
-function App() { return <main className="shell"><aside><strong>Swat<span>Stay</span></strong><small>ADMIN OPERATIONS</small><nav><a className="active">Overview</a><a>Bookings</a><a>Providers</a><a>Payments</a><a>Support</a></nav></aside><section className="content"><p className="eyebrow">ADMIN CONTROL CENTER</p><h1>Operations dashboard starter</h1><p className="intro">This React and TypeScript app will manage bookings, provider approvals, payments, QR service handoffs, and support.</p><div className="grid"><article><small>Pending bookings</small><b>12</b><span>Needs call confirmation</span></article><article><small>Providers to review</small><b>4</b><span>Registration dockets</span></article><article><small>Live service events</small><b>8</b><span>Today across Swat</span></article></div><div className="panel"><h2>Next build modules</h2><ul><li>Admin-controlled booking queue</li><li>Provider suggestion and assignment</li><li>Payment verification and commissions</li><li>Realtime QR and support events</li></ul></div></section></main> }
-createRoot(document.getElementById("root")!).render(<StrictMode><App/></StrictMode>);
+createRoot(document.getElementById("root")!).render(<StrictMode><BrowserRouter><App/></BrowserRouter></StrictMode>);

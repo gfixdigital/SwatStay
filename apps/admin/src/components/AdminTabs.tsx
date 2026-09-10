@@ -1,0 +1,3 @@
+export function AdminTabs<T extends string>({ tabs, value, onChange }: { tabs: { value: T; label: string; count?: number }[]; value: T; onChange: (value: T) => void }) {
+  return <div className="flex gap-1 overflow-x-auto border-b border-border" role="tablist">{tabs.map((tab) => <button key={tab.value} type="button" role="tab" aria-selected={value === tab.value} onClick={() => onChange(tab.value)} className={`flex min-h-10 shrink-0 items-center gap-2 border-b-2 px-3 text-sm font-semibold ${value === tab.value ? "border-river text-river" : "border-transparent text-stone hover:text-charcoal"}`}>{tab.label}{tab.count !== undefined && <span className="rounded-md bg-mist px-1.5 py-0.5 text-xs text-pine">{tab.count}</span>}</button>)}</div>;
+}
