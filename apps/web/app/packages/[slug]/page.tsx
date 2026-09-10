@@ -8,7 +8,7 @@ import { Footer } from "@/components/Footer";
 import { ItinerarySection } from "@/components/ItinerarySection";
 import { PackageBookingModal } from "@/components/PackageBookingModal";
 import { PriceBreakdown } from "@/components/PriceBreakdown";
-import { ServiceBadge } from "@/components/ServiceBadge";
+import { InteractiveServiceBadges } from "@/components/InteractiveServiceBadges";
 import { PageEnter } from "@/components/Animated";
 import { getPackage, packages } from "@/data/packages";
 import type { PackageServiceDetail, Service } from "@/types/package";
@@ -60,7 +60,7 @@ export default async function PackageDetailPage({ params }: { params: Promise<{ 
                 <OverviewItem icon={<Route/>} label="Route" value={item.route}/>
                 <OverviewItem icon={<Clock3/>} label="Duration" value={item.duration}/>
               </div>
-              <div className="mt-5 flex flex-wrap gap-2">{item.services.map((service) => <ServiceBadge key={service} service={service}/>)}</div>
+              <div className="mt-5"><InteractiveServiceBadges details={item.serviceDetails}/></div>
               <p className="mt-5 text-xs leading-5 text-stone"><ShieldCheck size={15} className="mr-1 inline text-river"/>This is a booking request. Dates, provider availability, and final price are confirmed by phone.</p>
             </div>
           </div>
