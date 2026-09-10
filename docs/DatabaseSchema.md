@@ -193,6 +193,7 @@ model ProviderService {
 
   provider        Provider    @relation(fields: [providerId], references: [id])
   availability    ProviderAvailability[]
+  packageAssignments PackageServiceAssignment[]
   bookingItems    BookingItem[]
 }
 
@@ -244,6 +245,7 @@ model Package {
 
   destination        Destination  @relation(fields: [destinationId], references: [id])
   items              PackageItem[]
+  serviceAssignments PackageServiceAssignment[]
   addons             PackageAddon[]
   bookings           Booking[]
 }
@@ -259,6 +261,27 @@ model PackageItem {
   createdAt   DateTime    @default(now())
 
   package     Package     @relation(fields: [packageId], references: [id])
+}
+
+// Runtime/provider assignment for a package service. Operations can replace the
+// linked provider service after availability is confirmed without changing the
+// package title, price, route, or itinerary.
+model PackageServiceAssignment {
+  id                String          @id @default(uuid())
+  packageId         String
+  providerServiceId String?
+  serviceType       ServiceType
+  displayTitle      String
+  displayDescription String?
+  displayLocation   String?
+  assignmentStatus  AssignmentStatus @default(SAMPLE)
+  sortOrder         Int              @default(0)
+  isRequired        Boolean          @default(true)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  package           Package          @relation(fields: [packageId], references: [id])
+  providerService   ProviderService? @relation(fields: [providerServiceId], references: [id])
 }
 
 model PackageAddon {
