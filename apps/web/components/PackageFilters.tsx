@@ -1,0 +1,8 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { CustomSelect } from "./CustomSelect";
+import { PackageCard } from "./PackageCard";
+import type { TourPackage } from "@/types/package";
+
+export function PackageFilters({ items }: { items: TourPackage[] }) { const [destination, setDestination] = useState("all"); const [type, setType] = useState("all"); const filtered = useMemo(() => items.filter((item) => (destination === "all" || item.destination === destination) && (type === "all" || item.type === type)), [items, destination, type]); return <><div className="mb-8 grid gap-4 rounded-brand border border-border bg-white p-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto]"><CustomSelect label="Destination" value={destination} onChange={setDestination} options={[{label:"All destinations",value:"all"},{label:"Kalam",value:"Kalam"},{label:"Malam Jabba",value:"Malam Jabba"},{label:"Swat",value:"Swat"}]}/><CustomSelect label="Travel style" value={type} onChange={setType} options={[{label:"All travel styles",value:"all"},{label:"Couple",value:"Couple"},{label:"Family",value:"Family"},{label:"Private",value:"Private"}]}/><button className="mt-auto min-h-11 text-left text-sm font-semibold text-river" onClick={() => { setDestination("all"); setType("all"); }}>Clear filters</button></div>{filtered.length ? <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">{filtered.map((item) => <PackageCard key={item.slug} item={item}/>)}</div> : <div className="rounded-brand border border-dashed border-border bg-white p-10 text-center"><h2 className="font-display text-xl font-bold">No packages found</h2><p className="mt-2 text-sm text-stone">Try another filter or request a custom Swat plan.</p></div>}</>; }

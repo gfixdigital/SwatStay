@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; min-width: 320px; overflow-x: hidden; background: #f8faf7; color: #17211b; font-family: var(--font-inter), sans-serif; }
+button, input, select, textarea { font: inherit; }
+button, a { transition-property: color, background-color, border-color, opacity, transform, box-shadow; transition-duration: .2s; transition-timing-function: ease; }
+@layer base { h1, h2, h3, h4 { font-family: var(--font-manrope), sans-serif; } }
+@layer components {
+  .container { @apply mx-auto w-[calc(100%-32px)] max-w-[1180px] md:w-[calc(100%-48px)]; }
+  .eyebrow { @apply mb-3 text-[11px] font-bold tracking-[.5px] text-river; }
+  .button { @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-brand border px-[18px] font-semibold; }
+  .section { @apply py-[58px] md:py-[82px]; }
+  .field { @apply h-11 rounded-brand border border-border bg-white px-3 outline-none focus:border-river focus:ring-1 focus:ring-river; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}

@@ -1,0 +1,1 @@
+"use client"; export function Dialog({ open, children }: { open: boolean; children: React.ReactNode }) { return open ? <div className="fixed inset-0 z-50 grid place-items-center bg-charcoal/55 p-4">{children}</div> : null; }

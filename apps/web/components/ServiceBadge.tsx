@@ -1,0 +1,2 @@
+import { Car, Hotel, Mountain, Utensils } from "lucide-react";
+export function ServiceBadge({ service }: { service: string }) { const Icon = service === "Hotel" ? Hotel : service === "Transport" ? Car : service === "Meals" ? Utensils : Mountain; return <span className="inline-flex items-center gap-2 rounded-brand border border-border bg-white px-3 py-2 text-sm text-stone"><Icon size={16} className="text-river"/>{service}</span>; }

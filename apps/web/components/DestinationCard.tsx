@@ -1,0 +1,5 @@
+"use client";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import type { CSSProperties } from "react";
+export function DestinationCard({ destination }: { destination: { name: string; eyebrow: string; detail: string; image: string; featured?: boolean } }) { return <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: .2 }} whileHover={{ y: -4 }} transition={{ duration: .35 }} className={destination.featured ? "sm:row-span-2" : ""}><Link href="/packages" className="group flex h-full overflow-hidden rounded-brand border border-border bg-white"><div className="flex w-full flex-col"><div className={`${destination.featured ? "h-56 sm:h-[360px]" : "h-40"} bg-cover bg-center transition duration-500 group-hover:scale-[1.02]`} style={{ backgroundImage: `url(${destination.image})` } as CSSProperties}/><div className="p-4"><span className="text-xs font-semibold text-river">{destination.eyebrow}</span><h3 className="mt-1 font-display text-2xl font-bold">{destination.name}</h3><small className="text-xs text-stone">{destination.detail}</small></div></div></Link></motion.div>; }

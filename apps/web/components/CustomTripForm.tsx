@@ -1,0 +1,25 @@
+"use client";
+
+import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { CustomSelect } from "./CustomSelect";
+import { DatePicker } from "./DatePicker";
+
+const interests = ["Mountain views", "Hiking", "Food", "Snow", "Photography", "Family time"];
+
+export function CustomTripForm() {
+  const [sent, setSent] = useState(false);
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+  if (sent) return <div className="rounded-brand border border-border bg-white p-7 text-center shadow-editorial"><span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-mist text-pine"><CheckCircle2 size={28}/></span><div className="eyebrow mt-5">REQUEST RECEIVED</div><h2 className="font-display text-2xl font-bold">Your Swat brief is with our team</h2><p className="mt-3 text-sm leading-6 text-stone">We will review your preferences and call to shape the route, stay, and transport details with you.</p><button type="button" onClick={() => setSent(false)} className="mt-6 text-sm font-semibold text-river">Submit another request</button></div>;
+  return <form onSubmit={(event) => { event.preventDefault(); setSent(true); }} className="grid gap-5 rounded-brand border border-border bg-white p-5 shadow-editorial sm:p-7">
+    <div><div className="eyebrow mb-1">YOUR TRIP BRIEF</div><h2 className="font-display text-2xl font-bold text-pine">Tell us how you want to experience Swat</h2><p className="mt-2 text-sm leading-6 text-stone">The more context you share, the more useful our first call will be.</p></div>
+    <label className="text-xs font-semibold text-stone">Where would you like to go?<input required name="destinationIdeas" className="field mt-1 w-full" placeholder="Kalam, Malam Jabba, river valleys..."/></label>
+    <div className="grid gap-4 sm:grid-cols-2"><CustomSelect label="Trip length" name="days" value="3" options={[{ label: "2 days", value: "2" }, { label: "3 days", value: "3" }, { label: "4 days", value: "4" }, { label: "5+ days", value: "5+" }]}/><CustomSelect label="Who is travelling?" name="travelerType" value="family" options={[{ label: "Solo", value: "solo" }, { label: "Couple", value: "couple" }, { label: "Family", value: "family" }, { label: "Group", value: "group" }]}/></div>
+    <div className="grid gap-4 sm:grid-cols-2"><DatePicker label="Preferred start date" name="travelDate"/><CustomSelect label="Approximate budget" name="budgetRange" value="30-60" options={[{ label: "PKR 30,000 - 60,000", value: "30-60" }, { label: "PKR 60,000 - 100,000", value: "60-100" }, { label: "PKR 100,000+", value: "100+" }]}/></div>
+    <div className="grid gap-4 sm:grid-cols-2"><CustomSelect label="Stay preference" name="stayLevel" value="standard" options={[{ label: "Simple and practical", value: "basic" }, { label: "Comfortable standard", value: "standard" }, { label: "Premium stay", value: "premium" }]}/><CustomSelect label="Transport preference" name="transport" value="private" options={[{ label: "Private vehicle", value: "private" }, { label: "Shared transport", value: "shared" }, { label: "I will arrange transport", value: "own" }]}/></div>
+    <fieldset><legend className="text-xs font-semibold text-stone">What matters to your group?</legend><div className="mt-2 flex flex-wrap gap-2">{interests.map((interest) => { const active = selectedInterests.includes(interest); return <label key={interest} className={`cursor-pointer rounded-md border px-3 py-2 text-xs transition ${active ? "border-pine bg-pine text-white" : "border-border bg-white text-stone hover:border-river"}`}><input type="checkbox" name="interests" value={interest} checked={active} onChange={() => setSelectedInterests((current) => active ? current.filter((item) => item !== interest) : [...current, interest])} className="sr-only"/>{interest}</label>; })}</div></fieldset>
+    <label className="text-xs font-semibold text-stone">Anything else we should plan for?<textarea name="specialRequests" rows={3} className="mt-1 w-full rounded-brand border border-border p-3 outline-none focus:border-river focus:ring-1 focus:ring-river" placeholder="Accessibility, food preferences, a celebration, or places you want to avoid..."/></label>
+    <div className="grid gap-4 border-t border-border pt-5 sm:grid-cols-2"><label className="text-xs font-semibold text-stone">Your name<input required name="fullName" className="field mt-1 w-full" placeholder="Your full name"/></label><label className="text-xs font-semibold text-stone">Contact number<input required name="phone" className="field mt-1 w-full" placeholder="+92 300 1234567"/></label><label className="text-xs font-semibold text-stone sm:col-span-2">Email address<input required type="email" name="email" className="field mt-1 w-full" placeholder="you@example.com"/></label></div>
+    <button className="button min-h-12 bg-pine text-white hover:bg-[#0e2c22]">Send my trip brief <ArrowRight size={16}/></button>
+  </form>;
+}
