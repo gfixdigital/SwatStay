@@ -6,12 +6,14 @@ import { ArrowLeft, Car, Check, Clock3, Hotel, MapPin, Mountain, Route, ShieldCh
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ItinerarySection } from "@/components/ItinerarySection";
+import { PackageActions } from "@/components/PackageActions";
 import { PackageBookingModal } from "@/components/PackageBookingModal";
+import { PackageViewTracker } from "@/components/PackageViewTracker";
 import { PriceBreakdown } from "@/components/PriceBreakdown";
 import { InteractiveServiceBadges } from "@/components/InteractiveServiceBadges";
 import { PageEnter } from "@/components/Animated";
 import { getPackage, packages } from "@/data/packages";
-import type { PackageServiceDetail, Service } from "@/types/package";
+import type { PackageServiceDetail, Service, TourPackage } from "@/types/package";
 
 export function generateStaticParams() {
   return packages.map((item) => ({ slug: item.slug }));
@@ -32,9 +34,10 @@ export default async function PackageDetailPage({ params }: { params: Promise<{ 
   if (!item) notFound();
 
   return <>
+    <PackageViewTracker slug={item.slug}/>
     <Header/>
     <PageEnter>
-      <main className="pb-24 lg:pb-0">
+      <main className="pb-24 print:hidden lg:pb-0">
         <div className="border-b border-border bg-white">
           <div className="container flex min-h-12 items-center gap-2 text-xs text-stone">
             <Link href="/packages" className="inline-flex items-center gap-1 font-semibold text-river hover:text-pine"><ArrowLeft size={14}/> Packages</Link>
@@ -62,6 +65,7 @@ export default async function PackageDetailPage({ params }: { params: Promise<{ 
               </div>
               <div className="mt-5"><InteractiveServiceBadges details={item.serviceDetails}/></div>
               <p className="mt-5 text-xs leading-5 text-stone"><ShieldCheck size={15} className="mr-1 inline text-river"/>This is a booking request. Dates, provider availability, and final price are confirmed by phone.</p>
+              <PackageActions slug={item.slug} title={item.title}/>
             </div>
           </div>
         </section>
@@ -110,8 +114,19 @@ export default async function PackageDetailPage({ params }: { params: Promise<{ 
         </section>
       </main>
     </PageEnter>
-    <Footer/>
+    <div className="print:hidden"><Footer/></div>
+    <PrintItinerary item={item}/>
   </>;
+}
+
+function PrintItinerary({ item }: { item: TourPackage }) {
+  return <article className="hidden bg-white p-8 text-black print:block">
+    <header className="border-b border-black pb-5"><p className="text-sm font-semibold">SwatStay itinerary</p><h1 className="mt-2 text-3xl font-bold">{item.title}</h1><p className="mt-2">Destination: {item.destination}</p><p>Duration: {item.duration}</p><p>Route: {item.route}</p></header>
+    <section className="mt-6"><h2 className="text-xl font-bold">Included services</h2><ul className="mt-3 list-disc space-y-1 pl-5">{item.serviceDetails.map((detail) => <li key={`${detail.service}-${detail.providerName}`}><strong>{detail.service}:</strong> {detail.title}, {detail.providerName}</li>)}</ul></section>
+    <section className="mt-7"><h2 className="text-xl font-bold">Day-by-day itinerary</h2><div className="mt-3 space-y-4">{item.itinerary.map((day) => <div key={day.day} className="border-t border-gray-400 pt-3"><strong>{day.day}: {day.title}</strong><p className="mt-1">{day.description}</p></div>)}</div></section>
+    <section className="mt-7"><h2 className="text-xl font-bold">Cancellation summary</h2><ul className="mt-3 list-disc space-y-1 pl-5"><li>Cancellation depends on provider policy and booking date.</li><li>GFix confirms refund rules during the confirmation call.</li><li>Weather and road changes may require rescheduling.</li><li>Final terms are available on the SwatStay Terms and Conditions page.</li></ul></section>
+    <footer className="mt-8 border-t border-black pt-4 text-sm"><strong>Contact note:</strong> Contact the SwatStay team by phone or WhatsApp to confirm current providers, availability, and final pricing before payment.</footer>
+  </article>;
 }
 
 function OverviewItem({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {

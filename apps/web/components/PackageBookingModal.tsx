@@ -3,7 +3,9 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { CheckCircle2, MessageCircle, PhoneCall, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useLanguage } from "@/hooks/useLanguage";
 import { BookingForm } from "./BookingForm";
+import { CurrencyPrice } from "./CurrencyPrice";
 
 type PackageBookingModalProps = {
   packageTitle: string;
@@ -15,6 +17,7 @@ type PackageBookingModalProps = {
 export function PackageBookingModal({ packageTitle, packageImage, price, duration }: PackageBookingModalProps) {
   const [open, setOpen] = useState(false);
   const reduceMotion = useReducedMotion();
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (!open) return;
@@ -33,21 +36,20 @@ export function PackageBookingModal({ packageTitle, packageImage, price, duratio
       <div className="overflow-hidden rounded-brand border border-border bg-white shadow-editorial">
         <div className="h-32 bg-cover bg-center" style={{ backgroundImage: `url(${packageImage})` }}/>
         <div className="p-5">
-          <span className="text-[11px] font-semibold uppercase tracking-[.08em] text-river">Starting price</span>
-          <div className="mt-1 flex items-end justify-between gap-3"><strong className="font-display text-3xl text-pine">PKR {price.toLocaleString()}</strong><span className="pb-1 text-xs text-stone">{duration}</span></div>
+          <div className="mt-1 flex items-end justify-between gap-3"><CurrencyPrice amountPkr={price} className="font-display text-3xl text-pine"/><span className="pb-1 text-xs text-stone">{duration}</span></div>
           <p className="mt-2 text-xs leading-5 text-stone">Final price and provider availability are confirmed by phone before payment.</p>
           <div className="my-5 space-y-3 border-y border-border py-4 text-xs text-stone">
             <p className="flex gap-2"><CheckCircle2 size={15} className="shrink-0 text-river"/>No charge when sending a request</p>
             <p className="flex gap-2"><PhoneCall size={15} className="shrink-0 text-river"/>A team member confirms the plan</p>
           </div>
-          <button type="button" onClick={() => setOpen(true)} className="button w-full bg-pine text-white hover:bg-[#0e2c22]">Request this package</button>
+          <button type="button" onClick={() => setOpen(true)} className="button w-full bg-pine text-white hover:bg-[#0e2c22]">{t("requestPackage")}</button>
           <a href="https://wa.me/92946000000" target="_blank" rel="noreferrer" className="mt-3 flex min-h-11 items-center justify-center gap-2 rounded-brand border border-border text-sm font-semibold text-river hover:bg-mist"><MessageCircle size={16}/> Ask on WhatsApp</a>
         </div>
       </div>
     </aside>
 
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-white p-3 shadow-[0_-8px_24px_rgba(18,55,42,.10)] lg:hidden">
-      <div className="mx-auto flex max-w-xl items-center gap-3"><div className="min-w-0 flex-1"><span className="block text-[10px] uppercase tracking-wide text-stone">From</span><strong className="font-display text-lg text-pine">PKR {price.toLocaleString()}</strong></div><button type="button" onClick={() => setOpen(true)} className="button min-h-11 bg-pine px-4 text-sm text-white">Request booking</button></div>
+      <div className="mx-auto flex max-w-xl items-center gap-3"><div className="min-w-0 flex-1"><CurrencyPrice amountPkr={price} className="font-display text-lg text-pine"/></div><button type="button" onClick={() => setOpen(true)} className="button min-h-11 bg-pine px-4 text-sm text-white">{t("requestBooking")}</button></div>
     </div>
 
     <AnimatePresence>
