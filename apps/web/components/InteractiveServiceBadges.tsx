@@ -2,13 +2,14 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Car, ChevronRight, Hotel, MapPin, Mountain, Utensils, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { PackageServiceDetail, Service } from "@/types/package";
 
-export function InteractiveServiceBadges({ details }: { details: PackageServiceDetail[] }) {
+export function InteractiveServiceBadges({ details, compact = false }: { details: PackageServiceDetail[]; compact?: boolean }) {
   const [activeService, setActiveService] = useState<Service | null>(null);
   const [pinnedService, setPinnedService] = useState<Service | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const previewId = useId();
   const reduceMotion = useReducedMotion();
   const activeDetail = details.find((detail) => detail.service === activeService);
 
@@ -51,20 +52,20 @@ export function InteractiveServiceBadges({ details }: { details: PackageServiceD
           key={detail.service}
           type="button"
           aria-expanded={selected}
-          aria-controls="service-preview"
+          aria-controls={previewId}
           onMouseEnter={() => !pinnedService && setActiveService(detail.service)}
           onFocus={() => !pinnedService && setActiveService(detail.service)}
           onClick={() => toggle(detail.service)}
-          className={`inline-flex min-h-11 items-center gap-2 rounded-brand border px-3.5 py-2 text-sm font-medium transition ${selected ? "border-river bg-mist text-pine shadow-[0_5px_16px_rgba(18,55,42,.08)]" : "border-border bg-white text-stone hover:-translate-y-0.5 hover:border-river hover:text-pine"}`}
+          className={`inline-flex items-center gap-2 rounded-brand border font-medium transition ${compact ? "min-h-9 px-2.5 py-1.5 text-xs" : "min-h-11 px-3.5 py-2 text-sm"} ${selected ? "border-river bg-mist text-pine shadow-[0_5px_16px_rgba(18,55,42,.08)]" : "border-border bg-white text-stone hover:-translate-y-0.5 hover:border-river hover:text-pine"}`}
         >
-          <span className="text-river">{serviceIcon(detail.service, 17)}</span>{detail.service}
+          <span className="text-river">{serviceIcon(detail.service, compact ? 15 : 17)}</span>{detail.service}
         </button>;
       })}
     </div>
 
     <AnimatePresence mode="wait">
       {activeDetail && <motion.div
-        id="service-preview"
+        id={previewId}
         key={activeDetail.service}
         initial={reduceMotion ? false : { opacity: 0, y: 6, scale: .99 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
