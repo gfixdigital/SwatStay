@@ -66,11 +66,11 @@ export function InteractiveServiceBadges({ details }: { details: PackageServiceD
       {activeDetail && <motion.div
         id="service-preview"
         key={activeDetail.service}
-        initial={reduceMotion ? false : { opacity: 0, y: -6, scale: .99 }}
+        initial={reduceMotion ? false : { opacity: 0, y: 6, scale: .99 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -4, scale: .99 }}
+        exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 4, scale: .99 }}
         transition={{ duration: reduceMotion ? 0 : .2, ease: "easeOut" }}
-        className="absolute left-0 top-full mt-3 w-full max-w-md overflow-hidden rounded-brand border border-border bg-white shadow-[0_18px_45px_rgba(18,55,42,.16)]"
+        className="absolute bottom-full left-0 mb-3 w-full max-w-md origin-bottom overflow-hidden rounded-brand border border-border bg-white shadow-[0_18px_45px_rgba(18,55,42,.16)]"
       >
         <div className="flex items-start gap-3 border-b border-border bg-mist p-4">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-brand bg-white text-river shadow-[0_0_0_1px_#D9E2DD]">{serviceIcon(activeDetail.service, 19)}</span>
