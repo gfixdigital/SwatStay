@@ -1,37 +1,230 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowUpRight, BadgeCheck, CalendarDays, CarFront, Check, CheckCircle2, Clock3, Download, Hotel, MapPin, MessageSquare, Mountain, PhoneCall, QrCode, RefreshCw, ShieldCheck, Utensils, WalletCards, X } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  BadgeCheck,
+  Banknote,
+  CalendarDays,
+  CarFront,
+  Check,
+  CheckCircle2,
+  Clock3,
+  Download,
+  FileCheck2,
+  FileText,
+  Hotel,
+  MapPin,
+  MessageCircle,
+  MessageSquare,
+  Mountain,
+  PhoneCall,
+  QrCode,
+  ReceiptText,
+  RefreshCw,
+  Route,
+  ShieldCheck,
+  Utensils,
+  WalletCards,
+  X,
+} from "lucide-react";
+import { getPackage } from "@/data/packages";
 
-type Service = { id: string; title: string; provider: string; detail: string; status: "Ready" | "Pending" | "Checked in"; icon: React.ReactNode };
+type Service = {
+  id: string;
+  title: string;
+  provider: string;
+  detail: string;
+  status: "Ready" | "Pending" | "Checked in";
+  icon: React.ReactNode;
+};
+
+type DashboardTab = "overview" | "services" | "itinerary" | "support";
+type DocumentStatus = "Available" | "Pending confirmation" | "Coming after final confirmation";
+
+const dashboardPackage = getPackage("couple-standard-kalam");
+const changeTypes = ["Change travel date", "Change pickup city", "Add traveler", "Upgrade package", "Add activity", "Cancel trip", "Other"];
+const dashboardTabs: { id: DashboardTab; label: string }[] = [
+  { id: "overview", label: "Overview" },
+  { id: "services", label: "Services" },
+  { id: "itinerary", label: "Itinerary" },
+  { id: "support", label: "Support" },
+];
+const documents: { title: string; detail: string; status: DocumentStatus; icon: React.ReactNode }[] = [
+  { title: "Booking confirmation", detail: "Reference SS-2048", status: "Available", icon: <FileCheck2 size={18}/> },
+  { title: "Payment receipt", detail: "Advance payment record", status: "Available", icon: <ReceiptText size={18}/> },
+  { title: "Service voucher", detail: "Provider assignments", status: "Pending confirmation", icon: <QrCode size={18}/> },
+  { title: "Trip itinerary", detail: "Confirmed day plan", status: "Coming after final confirmation", icon: <Route size={18}/> },
+];
 
 const matrix = ["111111100101011111111", "100000101111010000001", "101110100101010111101", "101110111001010111101", "101110101101010111101", "100000101010010000001", "111111101010111111111", "000000001101000000000", "110111111001011011011", "001010010111100100100", "111101111010111110101", "010001001111001001110", "101110111001111010011", "000000001010001111000", "111111101101111010101", "100000100011001110010", "101110101111101011111", "101110111000011000100", "101110100111110111001", "100000101001011100110", "111111101110101011011"];
 
 export function DashboardView() {
+  const [activeTab, setActiveTab] = useState<DashboardTab>("overview");
   const [checkedIn, setCheckedIn] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState("Just now");
+  const [changeOpen, setChangeOpen] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState("Not refreshed yet");
   const [services, setServices] = useState<Service[]>([
     { id: "hotel", title: "Hotel check-in", provider: "Kalam View Guesthouse", detail: "Arrival desk · 14:00", status: "Ready", icon: <Hotel size={18}/> },
     { id: "transport", title: "Private transport", provider: "Swat Valley 4x4", detail: "Mingora pickup · 08:00", status: "Ready", icon: <CarFront size={18}/> },
     { id: "guide", title: "Ushu Forest guide", provider: "Naveed Khan · Local guide", detail: "Day 2 · 09:30", status: "Pending", icon: <Mountain size={18}/> },
     { id: "meals", title: "Breakfast and dinner", provider: "Kalam View Guesthouse", detail: "Included in stay", status: "Ready", icon: <Utensils size={18}/> },
   ]);
-  function demoCheckIn() { setCheckedIn(true); setLastUpdated("A few seconds ago"); setServices((current) => current.map((item) => item.id === "hotel" ? { ...item, status: "Checked in" } : item)); }
+
+  function demoCheckIn() {
+    setCheckedIn(true);
+    setLastUpdated("A few seconds ago");
+    setServices((current) => current.map((item) => item.id === "hotel" ? { ...item, status: "Checked in" } : item));
+  }
+
+  const panelClass = (tab: DashboardTab) => activeTab === tab ? "block" : "hidden md:block";
+
   return <>
-    <section className="border-b border-border bg-snow py-4"><div className="container flex flex-col justify-between gap-3 text-xs text-stone sm:flex-row sm:items-center"><div className="flex items-center gap-2"><Link href="/" className="hover:text-pine">Home</Link><span>›</span><span className="font-medium text-charcoal">Traveler dashboard</span></div><div className="inline-flex w-fit items-center gap-2 rounded-md border border-[#c4d7cb] bg-[#e8efea] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.08em] text-pine"><ShieldCheck size={14}/> Protected trip workspace</div></div></section>
-    <section className="border-b border-border bg-white py-5 md:py-8"><div className="container"><div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-center"><div><div className="eyebrow">TRAVELER OPERATIONS DESK</div><h1 className="font-display text-3xl font-bold leading-tight text-pine sm:text-4xl">Good morning, Ayesha</h1><p className="mt-1.5 max-w-xl text-sm leading-6 text-stone">Your confirmed trip, service vouchers, and live arrival updates in one place.</p></div><div className="flex flex-wrap gap-2"><Link href="/packages" className="button min-h-9 border-border bg-white px-3 text-xs text-pine hover:bg-mist sm:text-sm">Plan another trip <ArrowUpRight size={15}/></Link><button type="button" onClick={() => setLastUpdated("Just now")} className="button min-h-9 bg-pine px-3 text-xs text-white hover:bg-[#0e2c22] sm:text-sm"><RefreshCw size={15}/> Refresh</button></div></div><div className="mt-4 grid grid-cols-2 gap-2 sm:mt-5 sm:grid-cols-2 lg:grid-cols-4"><Metric icon={<BadgeCheck/>} label="Trip status" value="Confirmed" tone="green"/><Metric icon={<CalendarDays/>} label="Travel dates" value="12–14 Oct 2026"/><Metric icon={<WalletCards/>} label="Payment" value="Advance received" tone="amber"/><Metric icon={<MessageSquare/>} label="Support desk" value="Available" tone="blue"/></div></div></section>
-    <section className="py-5 md:py-12"><div className="container grid gap-4 lg:grid-cols-[1.25fr_.75fr] lg:items-start"><div className="space-y-4 md:space-y-6"><section className="rounded-brand border border-border bg-white"><div className="flex flex-col justify-between gap-2 border-b border-border p-4 sm:flex-row sm:items-start md:p-6"><div><span className="text-[11px] font-semibold text-river">SS-2048 · COUPLE STANDARD</span><h2 className="mt-1 font-display text-xl font-bold text-charcoal sm:text-2xl">Kalam, 3 days</h2><p className="mt-1 flex items-center gap-1 text-xs text-stone sm:text-sm"><MapPin size={14} className="text-river"/> Mingora → Kalam → Ushu Forest</p></div><span className="inline-flex w-fit items-center gap-1 rounded-md border border-[#c4d7cb] bg-[#e8efea] px-2 py-1 text-[11px] font-semibold text-pine"><CheckCircle2 size={13}/> Confirmed</span></div><div className="grid grid-cols-3 gap-2 p-4 text-xs sm:gap-4 sm:p-5 sm:text-sm md:p-6"><Info label="Travel dates" value="12–14 Oct"/><Info label="Travelers" value="2 people"/><Info label="Pickup" value="Mingora · 08:00"/></div></section><section className="rounded-brand border border-border bg-white p-4 md:p-6"><div className="flex items-start justify-between gap-2"><div><div className="eyebrow mb-1">SERVICE VOUCHERS</div><h2 className="font-display text-xl font-bold sm:text-2xl">Every stop, one recorded status</h2></div><span className="text-[11px] text-stone">Prototype data</span></div><div className="mt-3 divide-y divide-border sm:mt-5">{services.map((service) => <ServiceRow key={service.id} service={service} checkedIn={checkedIn}/>)}</div></section><section className="rounded-brand border border-border bg-white p-4 md:p-6"><div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between"><div><div className="eyebrow mb-1">TRIP ACTIVITY</div><h2 className="font-display text-xl font-bold sm:text-2xl">Coordination timeline</h2></div><span className="text-[11px] text-stone">Prototype status</span></div><div className="mt-4 space-y-4 border-l border-border pl-4 sm:mt-5 sm:space-y-5 sm:pl-5"><Timeline title="Booking confirmed" detail="SwatStay confirmed your Kalam package and provider assignments." time="Today · 10:42" done/><Timeline title="Advance payment received" detail="Your advance payment has been recorded against SS-2048." time="Yesterday · 16:20" done/><Timeline title="Hotel arrival handoff" detail={checkedIn ? "Demo check-in state recorded for this preview." : "The future voucher flow will record hotel arrival here."} time={checkedIn ? "Prototype · checked in" : "12 Oct · 14:00"} done={checkedIn}/></div></section></div><aside className="space-y-4 lg:sticky lg:top-28 lg:space-y-6"><button type="button" onClick={() => setQrOpen(true)} className="group flex w-full items-center justify-between rounded-brand border border-border bg-white p-4 text-left shadow-editorial transition hover:-translate-y-0.5 hover:border-river"><span className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-md bg-mist text-river"><QrCode size={19}/></span><span><strong className="block font-display text-lg text-charcoal">Show QR voucher</strong><small className="mt-0.5 block text-xs text-stone">Prototype service preview</small></span></span><ArrowUpRight size={17} className="text-river transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"/></button><section className="rounded-brand border border-border bg-mist p-4 md:p-5"><div className="flex items-center gap-2"><PhoneCall size={18} className="text-river"/><h2 className="font-display text-lg font-semibold">Need the field team?</h2></div><p className="mt-2 text-sm leading-5 text-stone">Ask about pickup changes, provider arrival, accessibility, or any detail during the trip.</p><a href="mailto:desk@swatstay.pk" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-river">Contact support <ArrowUpRight size={15}/></a></section></aside></div></section>
+    <section className="border-b border-border bg-snow py-3">
+      <div className="container flex flex-col justify-between gap-2 text-xs text-stone sm:flex-row sm:items-center">
+        <div className="flex items-center gap-2"><Link href="/" className="hover:text-pine">Home</Link><span>›</span><span className="font-medium text-charcoal">Traveler dashboard</span></div>
+        <div className="inline-flex w-fit items-center gap-2 rounded-md border border-[#c4d7cb] bg-[#e8efea] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.08em] text-pine"><ShieldCheck size={14}/> Protected trip workspace</div>
+      </div>
+    </section>
+
+    <section className="border-b border-border bg-white py-5 md:py-8">
+      <div className="container">
+        <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-center">
+          <div><div className="eyebrow">TRAVELER OPERATIONS DESK</div><h1 className="font-display text-3xl font-bold leading-tight text-pine sm:text-4xl">Good morning, Ayesha</h1><p className="mt-1.5 max-w-xl text-sm leading-6 text-stone">Your confirmed trip, provider arrangements, payments, and support details in one place.</p></div>
+          <div className="flex flex-wrap items-center gap-2"><Link href="/packages" className="button min-h-9 border-border bg-white px-3 text-xs text-pine hover:bg-mist sm:text-sm">Plan another trip <ArrowUpRight size={15}/></Link><button type="button" onClick={() => setLastUpdated("Just now")} className="button min-h-9 bg-pine px-3 text-xs text-white hover:bg-[#0e2c22] sm:text-sm"><RefreshCw size={15}/> Refresh status</button><span className="w-full text-right text-[11px] text-stone">Frontend preview · {lastUpdated}</span></div>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:mt-5 lg:grid-cols-4"><Metric icon={<BadgeCheck/>} label="Trip status" value="Confirmed" tone="green"/><Metric icon={<CalendarDays/>} label="Travel dates" value="12–14 Oct 2026"/><Metric icon={<WalletCards/>} label="Payment" value="Advance received" tone="amber"/><Metric icon={<MessageSquare/>} label="Support desk" value="Active trip support" tone="blue"/></div>
+      </div>
+    </section>
+
+    <nav className="sticky top-[72px] z-20 border-b border-border bg-snow/95 px-4 py-2 backdrop-blur-sm md:hidden" aria-label="Dashboard sections">
+      <div className="mx-auto grid max-w-md grid-cols-4 gap-1 rounded-brand border border-border bg-white p-1" role="tablist">
+        {dashboardTabs.map((tab) => <button key={tab.id} type="button" role="tab" aria-selected={activeTab === tab.id} onClick={() => setActiveTab(tab.id)} className={`min-h-9 rounded-md px-1 text-[11px] font-semibold transition ${activeTab === tab.id ? "bg-pine text-white" : "text-stone hover:bg-mist hover:text-pine"}`}>{tab.label}</button>)}
+      </div>
+    </nav>
+
+    <section className="py-5 md:py-10">
+      <div className="container grid gap-5 lg:grid-cols-[1.3fr_.7fr] lg:items-start">
+        <div className="space-y-5">
+          <div className={`${panelClass("overview")} space-y-5`} role="tabpanel">
+            <TripSummary/>
+            <div className="grid gap-4 xl:grid-cols-2"><CallConfirmation/><PaymentBreakdown/></div>
+          </div>
+
+          <div className={`${panelClass("services")} space-y-5`} role="tabpanel">
+            <ServiceVouchers services={services} checkedIn={checkedIn}/>
+            <DocumentsSection/>
+          </div>
+
+          <div className={`${panelClass("itinerary")} space-y-5`} role="tabpanel">
+            <ItinerarySection/>
+            <ActivityTimeline checkedIn={checkedIn}/>
+          </div>
+        </div>
+
+        <aside className={`${panelClass("support")} space-y-4 lg:sticky lg:top-28`} role="tabpanel">
+          <button type="button" onClick={() => setChangeOpen(true)} className="group flex w-full items-center justify-between rounded-brand border border-pine bg-pine p-4 text-left text-white transition hover:-translate-y-0.5 hover:bg-[#0e2c22]"><span><strong className="block font-display text-lg">Request a trip change</strong><small className="mt-1 block text-xs text-[#c3ebd8]">The GFix team will call before changing the booking.</small></span><ArrowUpRight size={18} className="shrink-0"/></button>
+          <EmergencySupport/>
+          <section className="rounded-brand border border-border bg-white p-4"><div className="flex items-center gap-2"><QrCode size={18} className="text-river"/><div><h2 className="font-display text-base font-semibold text-charcoal">Service QR</h2><p className="text-xs text-stone">Prototype preview only</p></div></div><button type="button" onClick={() => setQrOpen(true)} className="button mt-3 min-h-9 w-full border-border bg-white px-3 text-xs text-pine hover:bg-mist">Show QR voucher <ArrowUpRight size={14}/></button></section>
+        </aside>
+      </div>
+    </section>
+
+    <ChangeRequestModal open={changeOpen} onClose={() => setChangeOpen(false)}/>
     <QrVoucherModal open={qrOpen} checkedIn={checkedIn} onClose={() => setQrOpen(false)} onCheckIn={demoCheckIn}/>
   </>;
 }
 
-function Metric({ icon, label, value, tone = "green" }: { icon: React.ReactNode; label: string; value: string; tone?: "green" | "amber" | "blue" }) { const colors = { green: "bg-mist text-pine", amber: "bg-[#faf3e8] text-amber", blue: "bg-[#ebf3f6] text-river" }; return <div className="flex min-w-0 items-center gap-2 rounded-brand border border-border bg-white p-2.5 sm:gap-3 sm:p-3"><span className={`grid h-8 w-8 shrink-0 place-items-center rounded-md ${colors[tone]} [&>svg]:h-4 [&>svg]:w-4 sm:h-9 sm:w-9 sm:[&>svg]:h-5 sm:[&>svg]:w-5`}>{icon}</span><span className="min-w-0"><small className="block truncate text-[10px] text-stone sm:text-xs">{label}</small><strong className="block truncate font-display text-xs text-charcoal sm:text-base">{value}</strong></span></div>; }
+function TripSummary() {
+  return <section className="rounded-brand border border-border bg-white">
+    <div className="flex flex-col justify-between gap-2 border-b border-border p-4 sm:flex-row sm:items-start md:p-5"><div><span className="text-xs font-semibold text-river">SS-2048 · COUPLE STANDARD</span><h2 className="mt-1 font-display text-xl font-bold text-charcoal sm:text-2xl">Kalam, 3 days</h2><p className="mt-1 flex items-center gap-1 text-sm text-stone"><MapPin size={14} className="text-river"/> Mingora → Kalam → Ushu Forest</p></div><span className="inline-flex w-fit items-center gap-1 rounded-md border border-[#c4d7cb] bg-[#e8efea] px-2 py-1 text-xs font-semibold text-pine"><CheckCircle2 size={13}/> Confirmed</span></div>
+    <div className="grid grid-cols-3 gap-2 p-4 md:p-5"><Info label="Travel dates" value="12–14 Oct"/><Info label="Travelers" value="2 people"/><Info label="Pickup" value="Mingora · 08:00"/></div>
+  </section>;
+}
+
+function CallConfirmation() {
+  return <section className="rounded-brand border border-border bg-white p-4 md:p-5">
+    <div className="flex items-start justify-between gap-3"><div><div className="eyebrow mb-1">CALL CONFIRMATION</div><h2 className="font-display text-xl font-bold text-charcoal">Details reviewed by GFix</h2></div><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-mist text-pine"><PhoneCall size={18}/></span></div>
+    <dl className="mt-4 divide-y divide-border text-sm"><DetailRow label="Status" value="Confirmed"/><DetailRow label="Confirmed by" value="GFix Travel Desk"/><DetailRow label="Confirmation date" value="8 Oct 2026 · 4:30 PM"/></dl>
+    <div className="mt-4 rounded-md bg-mist p-3"><strong className="text-xs text-pine">Call notes</strong><p className="mt-1 text-sm leading-5 text-stone">Pickup point shared by phone. Hotel room and meal timing will be reconfirmed one day before departure.</p></div>
+    <div className="mt-3"><strong className="text-xs text-pine">Tourist preferences</strong><ul className="mt-2 space-y-1.5 text-sm text-stone"><li className="flex gap-2"><Check size={14} className="mt-0.5 shrink-0 text-river"/>Quiet room where available</li><li className="flex gap-2"><Check size={14} className="mt-0.5 shrink-0 text-river"/>Vegetarian dinner option</li><li className="flex gap-2"><Check size={14} className="mt-0.5 shrink-0 text-river"/>No late-night road travel</li></ul></div>
+  </section>;
+}
+
+function PaymentBreakdown() {
+  return <section className="rounded-brand border border-border bg-white p-4 md:p-5">
+    <div className="flex items-start justify-between gap-3"><div><div className="eyebrow mb-1">PAYMENT BREAKDOWN</div><h2 className="font-display text-xl font-bold text-charcoal">PKR 48,000 total</h2></div><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-[#faf3e8] text-amber"><Banknote size={18}/></span></div>
+    <dl className="mt-4 divide-y divide-border text-sm"><DetailRow label="Advance paid" value="PKR 15,000"/><DetailRow label="Remaining balance" value="PKR 33,000"/><DetailRow label="Payment method" value="Bank transfer"/><DetailRow label="Payment proof" value="Received for review"/></dl>
+    <p className="mt-4 rounded-md border border-[#eed7b8] bg-[#faf3e8] p-3 text-xs leading-5 text-stone">Final payment and proof status are confirmed by the GFix team during booking coordination.</p>
+  </section>;
+}
+
+function ServiceVouchers({ services, checkedIn }: { services: Service[]; checkedIn: boolean }) {
+  return <section className="rounded-brand border border-border bg-white p-4 md:p-5"><div className="flex items-start justify-between gap-2"><div><div className="eyebrow mb-1">SERVICES</div><h2 className="font-display text-xl font-bold sm:text-2xl">Provider arrangements</h2></div><span className="text-xs text-stone">Static preview</span></div><div className="mt-3 divide-y divide-border">{services.map((service) => <ServiceRow key={service.id} service={service} checkedIn={checkedIn}/>)}</div></section>;
+}
+
+function DocumentsSection() {
+  return <section className="rounded-brand border border-border bg-white p-4 md:p-5"><div><div className="eyebrow mb-1">DOCUMENTS & DOWNLOADS</div><h2 className="font-display text-xl font-bold text-charcoal">Trip files</h2><p className="mt-1 text-sm text-stone">Frontend-only document placeholders for the confirmed booking flow.</p></div><div className="mt-4 grid gap-2 sm:grid-cols-2">{documents.map((document) => <DocumentItem key={document.title} {...document}/>)}</div></section>;
+}
+
+function DocumentItem({ title, detail, status, icon }: { title: string; detail: string; status: DocumentStatus; icon: React.ReactNode }) {
+  const available = status === "Available";
+  return <div className="flex items-start gap-3 rounded-brand border border-border bg-snow p-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white text-river">{icon}</span><div className="min-w-0 flex-1"><strong className="block text-sm text-charcoal">{title}</strong><span className="mt-0.5 block text-xs text-stone">{detail}</span><span className={`mt-2 inline-flex rounded-md border px-2 py-1 text-[11px] font-semibold ${available ? "border-[#c4d7cb] bg-[#e8efea] text-pine" : "border-border bg-white text-stone"}`}>{status}</span></div>{available && <button type="button" className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-river hover:bg-mist" title="Frontend download placeholder" aria-label={`Download ${title} placeholder`}><Download size={15}/></button>}</div>;
+}
+
+function ItinerarySection() {
+  return <section className="rounded-brand border border-border bg-white p-4 md:p-5"><div className="flex items-start justify-between gap-3"><div><div className="eyebrow mb-1">DAY-BY-DAY ITINERARY</div><h2 className="font-display text-xl font-bold text-charcoal sm:text-2xl">Your Kalam plan</h2></div><Route size={20} className="shrink-0 text-river"/></div><div className="mt-4 space-y-3">{dashboardPackage?.itinerary.map((item, index) => <article key={item.day} className="grid grid-cols-[44px_1fr] gap-3 rounded-brand border border-border bg-snow p-3"><span className="grid h-11 w-11 place-items-center rounded-md bg-pine font-display text-sm font-bold text-white">{index + 1}</span><div><span className="text-xs font-semibold text-river">{item.day}</span><h3 className="text-sm font-semibold text-charcoal">{item.title}</h3><p className="mt-1 text-sm leading-5 text-stone">{item.description}</p></div></article>)}</div></section>;
+}
+
+function ActivityTimeline({ checkedIn }: { checkedIn: boolean }) {
+  return <section className="rounded-brand border border-border bg-white p-4 md:p-5"><div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between"><div><div className="eyebrow mb-1">TRIP ACTIVITY</div><h2 className="font-display text-xl font-bold">Coordination timeline</h2></div><span className="text-xs text-stone">Static preview</span></div><div className="mt-4 space-y-4 border-l border-border pl-4 sm:pl-5"><Timeline title="Booking confirmed" detail="SwatStay confirmed your Kalam package and provider assignments." time="8 Oct · 4:30 PM" done/><Timeline title="Advance payment received" detail="Your advance payment has been recorded against SS-2048." time="8 Oct · 5:10 PM" done/><Timeline title="Hotel arrival handoff" detail={checkedIn ? "Demo check-in state recorded for this preview." : "The future voucher flow will record hotel arrival here."} time={checkedIn ? "Prototype · checked in" : "12 Oct · 2:00 PM"} done={checkedIn}/></div></section>;
+}
+
+function EmergencySupport() {
+  return <section className="rounded-brand border border-[#e2c8bf] bg-[#fff8f5] p-4"><div className="flex items-start gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white text-[#9c3f2e]"><AlertTriangle size={18}/></span><div><div className="eyebrow mb-1 text-[#9c3f2e]">EMERGENCY SUPPORT</div><h2 className="font-display text-lg font-semibold text-charcoal">Available during your active trip</h2></div></div><p className="mt-3 text-sm leading-5 text-stone">For urgent pickup, safety, accommodation, or route coordination. Contact local emergency services first for immediate danger.</p><div className="mt-4 grid grid-cols-2 gap-2"><a href="tel:+92946000000" className="button min-h-9 bg-[#9c3f2e] px-2 text-xs text-white hover:bg-[#813326]"><PhoneCall size={14}/> Call support</a><a href="https://wa.me/92946000000" target="_blank" rel="noreferrer" className="button min-h-9 border-[#e2c8bf] bg-white px-2 text-xs text-[#813326] hover:bg-[#fff1eb]"><MessageCircle size={14}/> WhatsApp</a></div></section>;
+}
+
+function ChangeRequestModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const reduceMotion = useReducedMotion();
+  const [changeType, setChangeType] = useState(changeTypes[0]);
+  const [message, setMessage] = useState("");
+  const [callbackTime, setCallbackTime] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent) => event.key === "Escape" && onClose();
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [open, onClose]);
+
+  function submitRequest(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitted(true);
+  }
+
+  function closeModal() {
+    onClose();
+    window.setTimeout(() => { setSubmitted(false); setMessage(""); setCallbackTime(""); setChangeType(changeTypes[0]); }, reduceMotion ? 0 : 220);
+  }
+
+  return <AnimatePresence>{open && <motion.div className="fixed inset-0 z-[100] grid place-items-center bg-charcoal/60 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? 0 : .18 }} onMouseDown={(event) => event.target === event.currentTarget && closeModal()}><motion.section role="dialog" aria-modal="true" aria-labelledby="change-request-title" initial={reduceMotion ? false : { opacity: 0, y: 16, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 10, scale: .98 }} transition={{ duration: reduceMotion ? 0 : .2, ease: "easeOut" }} className="relative max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-brand border border-border bg-white p-5 shadow-2xl sm:p-6"><button type="button" onClick={closeModal} className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-md text-stone hover:bg-mist hover:text-pine" aria-label="Close change request"><X size={19}/></button>{submitted ? <div className="py-8 text-center"><span className="mx-auto grid h-12 w-12 place-items-center rounded-md bg-mist text-pine"><CheckCircle2 size={24}/></span><h2 id="change-request-title" className="mt-4 font-display text-2xl font-bold text-charcoal">Change request received</h2><p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-stone">Our team will call you before updating the booking.</p><button type="button" onClick={closeModal} className="button mt-6 bg-pine text-white hover:bg-[#0e2c22]">Close</button></div> : <><div className="pr-10"><div className="eyebrow mb-1">FRONTEND REQUEST PREVIEW</div><h2 id="change-request-title" className="font-display text-2xl font-bold text-charcoal">Request a trip change</h2><p className="mt-2 text-sm leading-5 text-stone">No booking changes automatically. The GFix team will call to review this request.</p></div><form onSubmit={submitRequest} className="mt-5 space-y-4"><label className="block"><span className="mb-1.5 block text-sm font-semibold text-charcoal">Change type</span><select value={changeType} onChange={(event) => setChangeType(event.target.value)} className="field w-full" required>{changeTypes.map((type) => <option key={type}>{type}</option>)}</select></label><label className="block"><span className="mb-1.5 block text-sm font-semibold text-charcoal">Message</span><textarea value={message} onChange={(event) => setMessage(event.target.value)} className="field min-h-28 w-full resize-y py-3" placeholder="Explain what you want to change" required/></label><label className="block"><span className="mb-1.5 block text-sm font-semibold text-charcoal">Preferred callback time</span><input type="time" value={callbackTime} onChange={(event) => setCallbackTime(event.target.value)} className="field w-full" required/></label><button type="submit" className="button w-full bg-pine text-white hover:bg-[#0e2c22]">Submit change request <ArrowUpRight size={16}/></button></form></>}</motion.section></motion.div>}</AnimatePresence>;
+}
+
+function Metric({ icon, label, value, tone = "green" }: { icon: React.ReactNode; label: string; value: string; tone?: "green" | "amber" | "blue" }) {
+  const colors = { green: "bg-mist text-pine", amber: "bg-[#faf3e8] text-amber", blue: "bg-[#ebf3f6] text-river" };
+  return <div className="flex min-w-0 items-center gap-2 rounded-brand border border-border bg-white p-2.5 sm:gap-3 sm:p-3"><span className={`grid h-8 w-8 shrink-0 place-items-center rounded-md ${colors[tone]} [&>svg]:h-4 [&>svg]:w-4 sm:h-9 sm:w-9 sm:[&>svg]:h-5 sm:[&>svg]:w-5`}>{icon}</span><span className="min-w-0"><small className="block truncate text-[10px] text-stone sm:text-xs">{label}</small><strong className="block truncate font-display text-xs text-charcoal sm:text-base">{value}</strong></span></div>;
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) { return <div className="flex items-start justify-between gap-4 py-2.5 first:pt-0 last:pb-0"><dt className="text-stone">{label}</dt><dd className="text-right font-semibold text-charcoal">{value}</dd></div>; }
 function Info({ label, value }: { label: string; value: string }) { return <span className="border-l-2 border-mist pl-3"><small className="block text-xs text-stone">{label}</small><strong className="mt-1 block text-sm text-charcoal">{value}</strong></span>; }
-function ServiceRow({ service, checkedIn }: { service: Service; checkedIn: boolean }) { const status = checkedIn && service.id === "hotel" ? "Checked in" : service.status; const done = status === "Checked in" || status === "Ready"; return <div className="flex items-center justify-between gap-2 py-3 sm:gap-3 sm:py-4"><div className="flex min-w-0 items-center gap-2 sm:gap-3"><span className={`grid h-8 w-8 shrink-0 place-items-center rounded-md sm:h-10 sm:w-10 ${status === "Pending" ? "bg-[#faf3e8] text-amber" : "bg-mist text-pine"}`}>{service.icon}</span><span className="min-w-0"><strong className="block truncate text-xs text-charcoal sm:text-sm">{service.title}</strong><small className="block truncate text-[10px] text-stone sm:text-xs">{service.provider} · {service.detail}</small></span></div><span className={`inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-1 text-[10px] font-semibold sm:px-2 sm:text-xs ${status === "Pending" ? "border-[#eed7b8] bg-[#faf3e8] text-amber" : "border-[#c4d7cb] bg-[#e8efea] text-pine"}`}>{done ? <Check size={11}/> : <Clock3 size={11}/>}<span className="hidden sm:inline">{status}</span><span className="sm:hidden">{status === "Checked in" ? "In" : status}</span></span></div>; }
-function Timeline({ title, detail, time, done }: { title: string; detail: string; time: string; done?: boolean }) { return <div className="relative"><span className={`absolute -left-[26px] top-0.5 grid h-4 w-4 place-items-center rounded-full border-2 border-white ${done ? "bg-pine" : "bg-border"}`}>{done && <Check size={9} className="text-white"/>}</span><h3 className="text-sm font-semibold text-charcoal">{title}</h3><p className="mt-1 text-xs leading-5 text-stone">{detail}</p><span className="mt-1 block text-[11px] font-semibold text-river">{time}</span></div>; }
+function ServiceRow({ service, checkedIn }: { service: Service; checkedIn: boolean }) { const status = checkedIn && service.id === "hotel" ? "Checked in" : service.status; const done = status === "Checked in" || status === "Ready"; return <div className="flex items-center justify-between gap-2 py-3 sm:gap-3"><div className="flex min-w-0 items-center gap-2 sm:gap-3"><span className={`grid h-9 w-9 shrink-0 place-items-center rounded-md ${status === "Pending" ? "bg-[#faf3e8] text-amber" : "bg-mist text-pine"}`}>{service.icon}</span><span className="min-w-0"><strong className="block truncate text-sm text-charcoal">{service.title}</strong><small className="block truncate text-xs text-stone">{service.provider} · {service.detail}</small></span></div><span className={`inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-semibold ${status === "Pending" ? "border-[#eed7b8] bg-[#faf3e8] text-amber" : "border-[#c4d7cb] bg-[#e8efea] text-pine"}`}>{done ? <Check size={11}/> : <Clock3 size={11}/>}<span className="hidden sm:inline">{status}</span><span className="sm:hidden">{status === "Checked in" ? "In" : status}</span></span></div>; }
+function Timeline({ title, detail, time, done }: { title: string; detail: string; time: string; done?: boolean }) { return <div className="relative"><span className={`absolute -left-[22px] top-0.5 grid h-4 w-4 place-items-center rounded-full border-2 border-white ${done ? "bg-pine" : "bg-border"}`}>{done && <Check size={9} className="text-white"/>}</span><h3 className="text-sm font-semibold text-charcoal">{title}</h3><p className="mt-1 text-sm leading-5 text-stone">{detail}</p><span className="mt-1 block text-xs font-semibold text-river">{time}</span></div>; }
+
 function QrVoucherModal({ open, checkedIn, onClose, onCheckIn }: { open: boolean; checkedIn: boolean; onClose: () => void; onCheckIn: () => void }) {
   const reduceMotion = useReducedMotion();
   useEffect(() => {
@@ -64,9 +257,7 @@ function QrVoucherModal({ open, checkedIn, onClose, onCheckIn }: { open: boolean
     const startX = (canvas.width - qrSize) / 2;
     const startY = 298;
     context.fillStyle = "#202923";
-    matrix.forEach((row, y) => [...row].forEach((value, x) => {
-      if (value === "1") context.fillRect(startX + x * cell, startY + y * cell, cell, cell);
-    }));
+    matrix.forEach((row, y) => [...row].forEach((value, x) => { if (value === "1") context.fillRect(startX + x * cell, startY + y * cell, cell, cell); }));
     context.fillStyle = "#12372a";
     context.font = "700 30px Georgia, serif";
     context.fillText("Kalam Couple Standard", 70, 925);
@@ -85,5 +276,5 @@ function QrVoucherModal({ open, checkedIn, onClose, onCheckIn }: { open: boolean
     }, "image/png");
   }
 
-  return <AnimatePresence>{open && <motion.div className="fixed inset-0 z-[100] grid place-items-center bg-charcoal/60 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? 0 : .18 }} onMouseDown={(event) => event.target === event.currentTarget && onClose()}><motion.section role="dialog" aria-modal="true" aria-labelledby="qr-voucher-title" initial={reduceMotion ? false : { opacity: 0, y: 18, scale: .97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 12, scale: .98 }} transition={{ duration: reduceMotion ? 0 : .22, ease: "easeOut" }} className="relative max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-brand border border-border bg-white p-5 shadow-2xl sm:p-6"><button type="button" onClick={onClose} className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-md text-stone transition hover:bg-mist hover:text-pine" aria-label="Close QR voucher"><X size={19}/></button><div className="pr-10"><div className="eyebrow mb-1">FUTURE SERVICE VOUCHER</div><h2 id="qr-voucher-title" className="font-display text-2xl font-bold text-charcoal">QR preview</h2></div><p className="mt-2 text-sm leading-5 text-stone">A future voucher preview for service handoffs. It is not connected to a scanner or backend.</p><div className="mx-auto my-5 grid w-fit grid-cols-[repeat(21,minmax(0,1fr))] gap-0.5 border-8 border-white bg-white p-1 shadow-[0_0_0_1px_#D9E2DD]">{matrix.flatMap((row, y) => [...row].map((cell, x) => <span key={`${x}-${y}`} className={`h-2 w-2 sm:h-2.5 sm:w-2.5 ${cell === "1" ? "bg-charcoal" : "bg-white"}`}/>))}</div><div className="flex items-center justify-between border-y border-border py-3 text-xs"><span className="text-stone">Preview ID</span><strong className="font-mono text-river">DEMO-2048-KLM</strong></div><div className="mt-4 grid gap-2 sm:grid-cols-2"><button type="button" onClick={downloadVoucher} className="button min-h-10 border-border bg-white px-3 text-xs text-pine hover:bg-mist"><Download size={15}/> Download picture</button>{checkedIn ? <div className="flex min-h-10 items-center justify-center gap-2 rounded-md border border-[#c4d7cb] bg-[#e8efea] px-3 text-xs font-semibold text-pine"><CheckCircle2 size={15}/> Demo checked in</div> : <button type="button" onClick={onCheckIn} className="button min-h-10 bg-pine px-3 text-xs text-white hover:bg-[#0e2c22]"><ShieldCheck size={15}/> Preview check-in</button>}</div><p className="mt-3 text-center text-[11px] leading-4 text-stone">Future flow: authorized provider scan → service handoff event → tourist status update.</p></motion.section></motion.div>}</AnimatePresence>;
+  return <AnimatePresence>{open && <motion.div className="fixed inset-0 z-[100] grid place-items-center bg-charcoal/60 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? 0 : .18 }} onMouseDown={(event) => event.target === event.currentTarget && onClose()}><motion.section role="dialog" aria-modal="true" aria-labelledby="qr-voucher-title" initial={reduceMotion ? false : { opacity: 0, y: 18, scale: .97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 12, scale: .98 }} transition={{ duration: reduceMotion ? 0 : .22, ease: "easeOut" }} className="relative max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-brand border border-border bg-white p-5 shadow-2xl sm:p-6"><button type="button" onClick={onClose} className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-md text-stone transition hover:bg-mist hover:text-pine" aria-label="Close QR voucher"><X size={19}/></button><div className="pr-10"><div className="eyebrow mb-1">PROTOTYPE PREVIEW</div><h2 id="qr-voucher-title" className="font-display text-2xl font-bold text-charcoal">Service QR voucher</h2></div><p className="mt-2 text-sm leading-5 text-stone">A future voucher preview for service handoffs. It is not connected to a scanner or backend.</p><div className="mx-auto my-5 grid w-fit grid-cols-[repeat(21,minmax(0,1fr))] gap-0.5 border-8 border-white bg-white p-1 shadow-[0_0_0_1px_#D9E2DD]">{matrix.flatMap((row, y) => [...row].map((cell, x) => <span key={`${x}-${y}`} className={`h-2 w-2 sm:h-2.5 sm:w-2.5 ${cell === "1" ? "bg-charcoal" : "bg-white"}`}/>))}</div><div className="flex items-center justify-between border-y border-border py-3 text-xs"><span className="text-stone">Preview ID</span><strong className="font-mono text-river">DEMO-2048-KLM</strong></div><div className="mt-4 grid gap-2 sm:grid-cols-2"><button type="button" onClick={downloadVoucher} className="button min-h-10 border-border bg-white px-3 text-xs text-pine hover:bg-mist"><Download size={15}/> Download PNG</button>{checkedIn ? <div className="flex min-h-10 items-center justify-center gap-2 rounded-md border border-[#c4d7cb] bg-[#e8efea] px-3 text-xs font-semibold text-pine"><CheckCircle2 size={15}/> Demo checked in</div> : <button type="button" onClick={onCheckIn} className="button min-h-10 bg-pine px-3 text-xs text-white hover:bg-[#0e2c22]"><ShieldCheck size={15}/> Preview check-in</button>}</div><p className="mt-3 text-center text-[11px] leading-4 text-stone">Future flow: authorized provider scan → service handoff event → tourist status update.</p></motion.section></motion.div>}</AnimatePresence>;
 }
