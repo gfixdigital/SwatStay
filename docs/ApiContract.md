@@ -6,6 +6,13 @@ This file defines the first API contract for the SwatStay tourism platform.
 
 Frontend apps will use fake data first, then connect to these endpoints one by one.
 
+Frontend ownership:
+
+- `apps/web`: Next.js tourist website
+- `apps/admin`: React + TypeScript + Vite admin panel
+- `apps/provider`: React + TypeScript + Vite provider dashboard
+- `apps/mobile`: mobile client later
+
 Apps using this API:
 
 - Tourist website
@@ -664,4 +671,3 @@ Connect APIs in this order:
 10. `GET /provider/bookings`
 11. `PATCH /provider/bookings/:bookingItemId/accept`
 12. `PATCH /provider/bookings/:bookingItemId/reject`
-

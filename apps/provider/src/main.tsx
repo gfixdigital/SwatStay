@@ -1,0 +1,6 @@
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import "./styles.css";
+
+function App() { return <main className="shell"><aside><strong>Swat<span>Stay</span></strong><small>PROVIDER OPERATIONS</small><nav><a className="active">Overview</a><a>Assigned bookings</a><a>Services</a><a>Availability</a><a>Payouts</a></nav></aside><section className="content"><p className="eyebrow">PROVIDER OPERATIONS DESK</p><h1>Keep every guest handoff clear.</h1><p className="intro">This React and TypeScript app will let providers accept bookings, update service status, scan QR vouchers, manage availability, and track payouts.</p><div className="grid"><article><small>Assigned today</small><b>3</b><span>Guest services</span></article><article><small>Awaiting action</small><b>1</b><span>Confirm by 45-minute window</span></article><article><small>Next payout</small><b>PKR 24k</b><span>Settlement in progress</span></article></div><div className="panel"><h2>Next build modules</h2><ul><li>Assigned booking accept/reject workflow</li><li>QR voucher scan and service handoff</li><li>Availability and inventory updates</li><li>Payout and provider profile management</li></ul></div></section></main> }
+createRoot(document.getElementById("root")!).render(<StrictMode><App/></StrictMode>);

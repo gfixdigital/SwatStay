@@ -78,8 +78,8 @@ swatstay-platform/
 | Area | Technology |
 | --- | --- |
 | Tourist website | Next.js or React with TypeScript |
-| Admin dashboard | Next.js or React with TypeScript |
-| Provider dashboard | Next.js or React with TypeScript |
+| Admin dashboard | React with TypeScript and Vite |
+| Provider dashboard | React with TypeScript and Vite |
 | Backend | NestJS |
 | Database | Supabase PostgreSQL |
 | ORM | Prisma |
@@ -92,7 +92,7 @@ swatstay-platform/
 
 Recommended frontend choice:
 
-Use **Next.js with TypeScript** for public website because SEO matters for tourism pages.
+Use **Next.js with TypeScript** for the public tourist website because SEO matters for tourism pages. Use **React with TypeScript and Vite** for the admin and provider dashboards because they are authenticated operational applications rather than public SEO pages. Use **NestJS** as the only backend/API boundary for all frontend applications.
 
 ## 5. Domain Plan
 
@@ -575,4 +575,3 @@ Do not connect the frontend to backend immediately.
 First create the frontend prototype using `Design.md`, then prepare API contracts, then connect the real backend step by step.
 
 Sana should start with the tourist website UI first. Adnan should prepare the repo and backend foundation. Ahmed should prepare provider module planning. Asim should prepare admin module planning. Samreen and Wohaib should prepare QA checklists from the first sprint.
-

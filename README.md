@@ -6,7 +6,7 @@ SwatStay is a local-first tourism booking platform for Swat Valley. This reposit
 
 The active product is the static tourist website in `apps/web`. It includes the homepage, packages, package details, custom trip planning, booking flow, onboarding, login/signup UI, provider registration, traveler dashboard, QR voucher prototype, and live support prototype.
 
-Admin, provider operations, API, shared packages, and mobile are prepared as starters for later sprints. The current website uses static fake data. Backend, Supabase, Prisma, payments, production authentication, realtime events, and real QR scanning are not connected yet.
+The future admin panel and provider dashboard are React + TypeScript + Vite applications in `apps/admin` and `apps/provider`. The backend is a NestJS application in `services/api`. The current website and dashboard starters use static fake data. Supabase, Prisma, payments, production authentication, realtime events, and real QR scanning are not connected yet.
 
 ## Requirements
 
@@ -76,8 +76,8 @@ Do not run `pnpm build` at the same time as `pnpm dev` for the web app. Both use
 ```text
 apps/
   web/       Next.js App Router tourist website
-  admin/     Admin dashboard starter
-  provider/  Provider dashboard starter
+  admin/     React + TypeScript + Vite admin dashboard
+  provider/  React + TypeScript + Vite provider dashboard
   mobile/    Mobile app starter
 services/
   api/       NestJS API starter
@@ -98,8 +98,9 @@ All current forms and dashboard data are static. The future field inventory and 
 The planned architecture is:
 
 ```text
-Next.js apps -> NestJS API -> Prisma -> Supabase PostgreSQL
-                                      -> Supabase Storage or Cloudflare R2
+Next.js tourist website ─┐
+React admin/provider apps ─┼─> NestJS API -> Prisma -> Supabase PostgreSQL
+                          └─────────────────────────> Supabase Storage or Cloudflare R2
 ```
 
 The QR code currently demonstrates the interface and check-in state transition only. The production QR payload should contain a signed voucher reference, not personal identity data. Provider scans should be authorized and recorded as auditable service handoff events.
