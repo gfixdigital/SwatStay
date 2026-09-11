@@ -40,8 +40,10 @@ enum UserRole {
   TOURIST
   PROVIDER
   ADMIN
+  OPERATIONS
   SUPPORT
   FINANCE
+  QA
 }
 
 enum Language {
@@ -331,6 +333,7 @@ model Booking {
   payments               Payment[]
   commissions            Commission[]
   supportTickets         SupportTicket[]
+  changeRequests         BookingChangeRequest[]
 }
 
 model BookingItem {
@@ -439,6 +442,22 @@ model SupportTicket {
   booking     Booking? @relation(fields: [bookingId], references: [id])
 }
 
+model BookingChangeRequest {
+  id                    String   @id @default(uuid())
+  bookingId             String
+  changeType            String
+  message               String
+  preferredCallbackAt   DateTime?
+  status                String   @default("OPEN")
+  resolutionNote        String?
+  reviewedById          String?
+  reviewedAt            DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  booking               Booking  @relation(fields: [bookingId], references: [id])
+}
+
 model Review {
   id          String   @id @default(uuid())
   bookingId   String
@@ -476,6 +495,8 @@ Add indexes for:
 - `ProviderAvailability.date`
 - `Payment.status`
 - `BookingItem.status`
+- `BookingChangeRequest.bookingId`
+- `BookingChangeRequest.status`
 
 ## 6. MVP Database Priority
 

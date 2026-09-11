@@ -1,0 +1,3 @@
+import type { ReactNode } from "react";
+
+export function FilterBar({ children, resultText, onClear }: { children: ReactNode; resultText?: string; onClear?: () => void }) { return <div className="mb-4 rounded-lg border border-border bg-white p-3"><div className="grid gap-3 md:grid-cols-2 xl:flex xl:items-center [&>*]:min-w-0 xl:[&>*]:flex-1">{children}</div>{(resultText || onClear) && <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-xs text-stone"><span>{resultText}</span>{onClear && <button type="button" className="font-semibold text-river hover:text-pine" onClick={onClear}>Clear filters</button>}</div>}</div>; }

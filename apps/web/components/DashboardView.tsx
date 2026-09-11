@@ -17,6 +17,7 @@ import {
   FileCheck2,
   FileText,
   Hotel,
+  LifeBuoy,
   MapPin,
   MessageCircle,
   MessageSquare,
@@ -27,6 +28,7 @@ import {
   RefreshCw,
   Route,
   ShieldCheck,
+  Upload,
   Utensils,
   WalletCards,
   X,
@@ -44,6 +46,7 @@ type Service = {
 
 type DashboardTab = "overview" | "services" | "itinerary" | "support";
 type DocumentStatus = "Available" | "Pending confirmation" | "Coming after final confirmation";
+type PaymentProofStatus = "Proof submitted" | "Updated proof submitted";
 
 const dashboardPackage = getPackage("couple-standard-kalam");
 const changeTypes = ["Change travel date", "Change pickup city", "Add traveler", "Upgrade package", "Add activity", "Cancel trip", "Other"];
@@ -67,6 +70,10 @@ export function DashboardView() {
   const [checkedIn, setCheckedIn] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
   const [changeOpen, setChangeOpen] = useState(false);
+  const [paymentProofOpen, setPaymentProofOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
+  const [paymentProofStatus, setPaymentProofStatus] = useState<PaymentProofStatus>("Proof submitted");
+  const [supportStatus, setSupportStatus] = useState("SUP-82 · Meal preference · Open");
   const [lastUpdated, setLastUpdated] = useState("Not refreshed yet");
   const [services, setServices] = useState<Service[]>([
     { id: "hotel", title: "Hotel check-in", provider: "Kalam View Guesthouse", detail: "Arrival desk · 14:00", status: "Ready", icon: <Hotel size={18}/> },
@@ -97,7 +104,7 @@ export function DashboardView() {
           <div><div className="eyebrow">TRAVELER OPERATIONS DESK</div><h1 className="font-display text-3xl font-bold leading-tight text-pine sm:text-4xl">Good morning, Ayesha</h1><p className="mt-1.5 max-w-xl text-sm leading-6 text-stone">Your confirmed trip, provider arrangements, payments, and support details in one place.</p></div>
           <div className="flex flex-wrap items-center gap-2"><Link href="/packages" className="button min-h-9 border-border bg-white px-3 text-xs text-pine hover:bg-mist sm:text-sm">Plan another trip <ArrowUpRight size={15}/></Link><button type="button" onClick={() => setLastUpdated("Just now")} className="button min-h-9 bg-pine px-3 text-xs text-white hover:bg-[#0e2c22] sm:text-sm"><RefreshCw size={15}/> Refresh status</button><span className="w-full text-right text-[11px] text-stone">Frontend preview · {lastUpdated}</span></div>
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:mt-5 lg:grid-cols-4"><Metric icon={<BadgeCheck/>} label="Trip status" value="Confirmed" tone="green"/><Metric icon={<CalendarDays/>} label="Travel dates" value="12–14 Oct 2026"/><Metric icon={<WalletCards/>} label="Payment" value="Advance received" tone="amber"/><Metric icon={<MessageSquare/>} label="Support desk" value="Active trip support" tone="blue"/></div>
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:mt-5 lg:grid-cols-4"><Metric icon={<BadgeCheck/>} label="Trip status" value="Confirmed" tone="green"/><Metric icon={<CalendarDays/>} label="Travel dates" value="12–14 Oct 2026"/><Metric icon={<WalletCards/>} label="Payment" value="Proof under review" tone="amber"/><Metric icon={<MessageSquare/>} label="Support desk" value="1 open request" tone="blue"/></div>
       </div>
     </section>
 
@@ -112,12 +119,12 @@ export function DashboardView() {
         <div className="space-y-5">
           <div className={`${panelClass("overview")} space-y-5`} role="tabpanel">
             <TripSummary/>
-            <div className="grid gap-4 xl:grid-cols-2"><CallConfirmation/><PaymentBreakdown/></div>
+            <div className="grid gap-4 xl:grid-cols-2"><CallConfirmation/><PaymentBreakdown proofStatus={paymentProofStatus} onUpload={() => setPaymentProofOpen(true)}/></div>
           </div>
 
           <div className={`${panelClass("services")} space-y-5`} role="tabpanel">
             <ServiceVouchers services={services} checkedIn={checkedIn}/>
-            <DocumentsSection/>
+            <DocumentsSection proofStatus={paymentProofStatus}/>
           </div>
 
           <div className={`${panelClass("itinerary")} space-y-5`} role="tabpanel">
@@ -128,13 +135,16 @@ export function DashboardView() {
 
         <aside className={`${panelClass("support")} space-y-4 lg:sticky lg:top-28`} role="tabpanel">
           <button type="button" onClick={() => setChangeOpen(true)} className="group flex w-full items-center justify-between rounded-brand border border-pine bg-pine p-4 text-left text-white transition hover:-translate-y-0.5 hover:bg-[#0e2c22]"><span><strong className="block font-display text-lg">Request a trip change</strong><small className="mt-1 block text-xs text-[#c3ebd8]">The GFix team will call before changing the booking.</small></span><ArrowUpRight size={18} className="shrink-0"/></button>
+          <SupportRequestCard status={supportStatus} onOpen={() => setSupportOpen(true)}/>
           <EmergencySupport/>
           <section className="rounded-brand border border-border bg-white p-4"><div className="flex items-center gap-2"><QrCode size={18} className="text-river"/><div><h2 className="font-display text-base font-semibold text-charcoal">Service QR</h2><p className="text-xs text-stone">Prototype preview only</p></div></div><button type="button" onClick={() => setQrOpen(true)} className="button mt-3 min-h-9 w-full border-border bg-white px-3 text-xs text-pine hover:bg-mist">Show QR voucher <ArrowUpRight size={14}/></button></section>
         </aside>
       </div>
     </section>
 
-    <ChangeRequestModal open={changeOpen} onClose={() => setChangeOpen(false)}/>
+    <ChangeRequestModal open={changeOpen} onClose={() => setChangeOpen(false)} onSubmitted={(type) => setSupportStatus(`DEMO-CHANGE · ${type} · Open`)}/>
+    <PaymentProofModal open={paymentProofOpen} onClose={() => setPaymentProofOpen(false)} onSubmitted={() => setPaymentProofStatus("Updated proof submitted")}/>
+    <SupportRequestModal open={supportOpen} onClose={() => setSupportOpen(false)} onSubmitted={(type) => setSupportStatus(`DEMO-SUPPORT · ${type} · Open`)}/>
     <QrVoucherModal open={qrOpen} checkedIn={checkedIn} onClose={() => setQrOpen(false)} onCheckIn={demoCheckIn}/>
   </>;
 }
@@ -155,10 +165,11 @@ function CallConfirmation() {
   </section>;
 }
 
-function PaymentBreakdown() {
+function PaymentBreakdown({ proofStatus, onUpload }: { proofStatus: PaymentProofStatus; onUpload: () => void }) {
   return <section className="rounded-brand border border-border bg-white p-4 md:p-5">
     <div className="flex items-start justify-between gap-3"><div><div className="eyebrow mb-1">PAYMENT BREAKDOWN</div><h2 className="font-display text-xl font-bold text-charcoal">PKR 48,000 total</h2></div><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-[#faf3e8] text-amber"><Banknote size={18}/></span></div>
-    <dl className="mt-4 divide-y divide-border text-sm"><DetailRow label="Advance paid" value="PKR 15,000"/><DetailRow label="Remaining balance" value="PKR 33,000"/><DetailRow label="Payment method" value="Bank transfer"/><DetailRow label="Payment proof" value="Received for review"/></dl>
+    <dl className="mt-4 divide-y divide-border text-sm"><DetailRow label="Amount submitted" value="PKR 15,000"/><DetailRow label="Balance after verification" value="PKR 33,000"/><DetailRow label="Payment method" value="Bank transfer"/><DetailRow label="Payment proof" value={proofStatus}/></dl>
+    <button type="button" onClick={onUpload} className="button mt-4 min-h-10 w-full border-border bg-white px-3 text-xs text-pine hover:bg-mist"><Upload size={15}/> Update payment proof</button>
     <p className="mt-4 rounded-md border border-[#eed7b8] bg-[#faf3e8] p-3 text-xs leading-5 text-stone">Final payment and proof status are confirmed by the GFix team during booking coordination.</p>
   </section>;
 }
@@ -167,13 +178,25 @@ function ServiceVouchers({ services, checkedIn }: { services: Service[]; checked
   return <section className="rounded-brand border border-border bg-white p-4 md:p-5"><div className="flex items-start justify-between gap-2"><div><div className="eyebrow mb-1">SERVICES</div><h2 className="font-display text-xl font-bold sm:text-2xl">Provider arrangements</h2></div><span className="text-xs text-stone">Static preview</span></div><div className="mt-3 divide-y divide-border">{services.map((service) => <ServiceRow key={service.id} service={service} checkedIn={checkedIn}/>)}</div></section>;
 }
 
-function DocumentsSection() {
-  return <section className="rounded-brand border border-border bg-white p-4 md:p-5"><div><div className="eyebrow mb-1">DOCUMENTS & DOWNLOADS</div><h2 className="font-display text-xl font-bold text-charcoal">Trip files</h2><p className="mt-1 text-sm text-stone">Frontend-only document placeholders for the confirmed booking flow.</p></div><div className="mt-4 grid gap-2 sm:grid-cols-2">{documents.map((document) => <DocumentItem key={document.title} {...document}/>)}</div></section>;
+function DocumentsSection({ proofStatus }: { proofStatus: PaymentProofStatus }) {
+  const visibleDocuments = documents.map((document) => document.title === "Payment receipt" ? { ...document, detail: proofStatus, status: "Pending confirmation" as DocumentStatus } : document);
+  return <section className="rounded-brand border border-border bg-white p-4 md:p-5"><div><div className="eyebrow mb-1">DOCUMENTS & DOWNLOADS</div><h2 className="font-display text-xl font-bold text-charcoal">Trip files</h2><p className="mt-1 text-sm text-stone">Available files download locally. Pending files require GFix confirmation.</p></div><div className="mt-4 grid gap-2 sm:grid-cols-2">{visibleDocuments.map((document) => <DocumentItem key={document.title} {...document}/>)}</div></section>;
 }
 
 function DocumentItem({ title, detail, status, icon }: { title: string; detail: string; status: DocumentStatus; icon: React.ReactNode }) {
   const available = status === "Available";
-  return <div className="flex items-start gap-3 rounded-brand border border-border bg-snow p-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white text-river">{icon}</span><div className="min-w-0 flex-1"><strong className="block text-sm text-charcoal">{title}</strong><span className="mt-0.5 block text-xs text-stone">{detail}</span><span className={`mt-2 inline-flex rounded-md border px-2 py-1 text-[11px] font-semibold ${available ? "border-[#c4d7cb] bg-[#e8efea] text-pine" : "border-border bg-white text-stone"}`}>{status}</span></div>{available && <button type="button" className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-river hover:bg-mist" title="Frontend download placeholder" aria-label={`Download ${title} placeholder`}><Download size={15}/></button>}</div>;
+  function download() {
+    const body = title === "Booking confirmation"
+      ? "SwatStay booking confirmation\nReference: SS-2048\nPackage: Couple Standard - Kalam\nTravel dates: 12-14 Oct 2026\nStatus: Confirmed\n\nFrontend preview document."
+      : `SwatStay ${title}\nReference: SS-2048\n${detail}\n\nFrontend preview document.`;
+    const url = URL.createObjectURL(new Blob([body], { type: "text/plain" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${title.toLowerCase().replaceAll(" ", "-")}-preview.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+  return <div className="flex items-start gap-3 rounded-brand border border-border bg-snow p-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white text-river">{icon}</span><div className="min-w-0 flex-1"><strong className="block text-sm text-charcoal">{title}</strong><span className="mt-0.5 block text-xs text-stone">{detail}</span><span className={`mt-2 inline-flex rounded-md border px-2 py-1 text-[11px] font-semibold ${available ? "border-[#c4d7cb] bg-[#e8efea] text-pine" : "border-border bg-white text-stone"}`}>{status}</span></div>{available && <button type="button" onClick={download} className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-river hover:bg-mist" title={`Download ${title}`} aria-label={`Download ${title}`}><Download size={15}/></button>}</div>;
 }
 
 function ItinerarySection() {
@@ -184,11 +207,80 @@ function ActivityTimeline({ checkedIn }: { checkedIn: boolean }) {
   return <section className="rounded-brand border border-border bg-white p-4 md:p-5"><div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between"><div><div className="eyebrow mb-1">TRIP ACTIVITY</div><h2 className="font-display text-xl font-bold">Coordination timeline</h2></div><span className="text-xs text-stone">Static preview</span></div><div className="mt-4 space-y-4 border-l border-border pl-4 sm:pl-5"><Timeline title="Booking confirmed" detail="SwatStay confirmed your Kalam package and provider assignments." time="8 Oct · 4:30 PM" done/><Timeline title="Advance payment received" detail="Your advance payment has been recorded against SS-2048." time="8 Oct · 5:10 PM" done/><Timeline title="Hotel arrival handoff" detail={checkedIn ? "Demo check-in state recorded for this preview." : "The future voucher flow will record hotel arrival here."} time={checkedIn ? "Prototype · checked in" : "12 Oct · 2:00 PM"} done={checkedIn}/></div></section>;
 }
 
+function SupportRequestCard({ status, onOpen }: { status: string; onOpen: () => void }) {
+  return <section className="rounded-brand border border-border bg-white p-4">
+    <div className="flex items-start gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-mist text-river"><LifeBuoy size={18}/></span><div><div className="eyebrow mb-1">BOOKING SUPPORT</div><h2 className="font-display text-lg font-semibold text-charcoal">Request help from GFix</h2></div></div>
+    <p className="mt-3 rounded-md bg-snow p-3 text-xs font-semibold leading-5 text-stone">{status}</p>
+    <button type="button" onClick={onOpen} className="button mt-3 min-h-9 w-full border-border bg-white px-3 text-xs text-pine hover:bg-mist">Create support request <ArrowUpRight size={14}/></button>
+  </section>;
+}
+
 function EmergencySupport() {
   return <section className="rounded-brand border border-[#e2c8bf] bg-[#fff8f5] p-4"><div className="flex items-start gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white text-[#9c3f2e]"><AlertTriangle size={18}/></span><div><div className="eyebrow mb-1 text-[#9c3f2e]">EMERGENCY SUPPORT</div><h2 className="font-display text-lg font-semibold text-charcoal">Available during your active trip</h2></div></div><p className="mt-3 text-sm leading-5 text-stone">For urgent pickup, safety, accommodation, or route coordination. Contact local emergency services first for immediate danger.</p><div className="mt-4 grid grid-cols-2 gap-2"><a href="tel:+92946000000" className="button min-h-9 bg-[#9c3f2e] px-2 text-xs text-white hover:bg-[#813326]"><PhoneCall size={14}/> Call support</a><a href="https://wa.me/92946000000" target="_blank" rel="noreferrer" className="button min-h-9 border-[#e2c8bf] bg-white px-2 text-xs text-[#813326] hover:bg-[#fff1eb]"><MessageCircle size={14}/> WhatsApp</a></div></section>;
 }
 
-function ChangeRequestModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+function PaymentProofModal({ open, onClose, onSubmitted }: { open: boolean; onClose: () => void; onSubmitted: () => void }) {
+  const reduceMotion = useReducedMotion();
+  const [method, setMethod] = useState("Bank transfer");
+  const [amount, setAmount] = useState("15000");
+  const [reference, setReference] = useState("FT-882410");
+  const [fileName, setFileName] = useState("");
+  const [error, setError] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent) => event.key === "Escape" && closeModal();
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [open]);
+
+  function selectFile(file: File | undefined) {
+    if (!file) return;
+    const allowed = ["image/jpeg", "image/png", "application/pdf"];
+    if (!allowed.includes(file.type)) { setError("Choose a JPG, PNG, or PDF file."); setFileName(""); return; }
+    if (file.size > 5 * 1024 * 1024) { setError("The proof file must be 5 MB or smaller."); setFileName(""); return; }
+    setError("");
+    setFileName(file.name);
+  }
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!fileName) { setError("Choose a payment proof file before submitting."); return; }
+    setError("");
+    setSubmitted(true);
+    onSubmitted();
+  }
+
+  function closeModal() {
+    onClose();
+    window.setTimeout(() => { setSubmitted(false); setFileName(""); setError(""); }, reduceMotion ? 0 : 220);
+  }
+
+  return <AnimatePresence>{open && <motion.div className="fixed inset-0 z-[100] grid place-items-center bg-charcoal/60 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? 0 : .18 }} onMouseDown={(event) => event.target === event.currentTarget && closeModal()}><motion.section role="dialog" aria-modal="true" aria-labelledby="payment-proof-title" initial={reduceMotion ? false : { opacity: 0, y: 16, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 10, scale: .98 }} transition={{ duration: reduceMotion ? 0 : .2, ease: "easeOut" }} className="relative max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-brand border border-border bg-white p-5 shadow-2xl sm:p-6"><button type="button" onClick={closeModal} className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-md text-stone hover:bg-mist hover:text-pine" aria-label="Close payment proof"><X size={19}/></button>{submitted ? <div className="py-8 text-center"><span className="mx-auto grid h-12 w-12 place-items-center rounded-md bg-mist text-pine"><CheckCircle2 size={24}/></span><h2 id="payment-proof-title" className="mt-4 font-display text-2xl font-bold text-charcoal">Payment proof submitted</h2><p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-stone">Your updated proof is ready for GFix finance review in this frontend preview. It is not uploaded to a server yet.</p><button type="button" onClick={closeModal} className="button mt-6 bg-pine text-white hover:bg-[#0e2c22]">Close</button></div> : <><div className="pr-10"><div className="eyebrow mb-1">PAYMENT REVIEW</div><h2 id="payment-proof-title" className="font-display text-2xl font-bold text-charcoal">Update payment proof</h2><p className="mt-2 text-sm leading-5 text-stone">Reference SS-2048. Add the details GFix needs to match your payment.</p></div><form onSubmit={submit} className="mt-5 space-y-4"><div className="grid gap-4 sm:grid-cols-2"><label className="block"><span className="mb-1.5 block text-sm font-semibold text-charcoal">Amount paid</span><input type="number" min="1" max="48000" value={amount} onChange={(event) => setAmount(event.target.value)} className="field w-full" required/></label><label className="block"><span className="mb-1.5 block text-sm font-semibold text-charcoal">Payment method</span><select value={method} onChange={(event) => setMethod(event.target.value)} className="field w-full" required><option>Bank transfer</option><option>JazzCash</option><option>EasyPaisa</option><option>Cash deposit</option><option>Other</option></select></label></div><label className="block"><span className="mb-1.5 block text-sm font-semibold text-charcoal">Transaction reference</span><input value={reference} onChange={(event) => setReference(event.target.value)} className="field w-full" placeholder="Bank or wallet reference" required/></label><label className="block"><span className="mb-1.5 block text-sm font-semibold text-charcoal">Proof file</span><span className="flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-brand border border-dashed border-border bg-snow px-4 text-center hover:border-river"><Upload size={20} className="text-river"/><strong className="mt-2 text-sm text-charcoal">{fileName || "Choose receipt or screenshot"}</strong><small className="mt-1 text-xs text-stone">JPG, PNG, or PDF. Maximum 5 MB.</small><input type="file" accept="image/jpeg,image/png,application/pdf" className="sr-only" onChange={(event) => selectFile(event.target.files?.[0])}/></span></label>{error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>}<p className="rounded-md bg-mist p-3 text-xs leading-5 text-stone">Frontend preview only. The future file service will upload this securely and notify the finance queue.</p><button type="submit" className="button w-full bg-pine text-white hover:bg-[#0e2c22]">Submit proof for review <Upload size={16}/></button></form></>}</motion.section></motion.div>}</AnimatePresence>;
+}
+
+function SupportRequestModal({ open, onClose, onSubmitted }: { open: boolean; onClose: () => void; onSubmitted: (type: string) => void }) {
+  const reduceMotion = useReducedMotion();
+  const [type, setType] = useState("Payment question");
+  const [priority, setPriority] = useState("Normal");
+  const [message, setMessage] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent) => event.key === "Escape" && closeModal();
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [open]);
+
+  function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); setSubmitted(true); onSubmitted(type); }
+  function closeModal() { onClose(); window.setTimeout(() => { setSubmitted(false); setMessage(""); setPriority("Normal"); }, reduceMotion ? 0 : 220); }
+
+  return <AnimatePresence>{open && <motion.div className="fixed inset-0 z-[100] grid place-items-center bg-charcoal/60 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? 0 : .18 }} onMouseDown={(event) => event.target === event.currentTarget && closeModal()}><motion.section role="dialog" aria-modal="true" aria-labelledby="support-request-title" initial={reduceMotion ? false : { opacity: 0, y: 16, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 10, scale: .98 }} transition={{ duration: reduceMotion ? 0 : .2, ease: "easeOut" }} className="relative max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-brand border border-border bg-white p-5 shadow-2xl sm:p-6"><button type="button" onClick={closeModal} className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-md text-stone hover:bg-mist hover:text-pine" aria-label="Close support request"><X size={19}/></button>{submitted ? <div className="py-8 text-center"><span className="mx-auto grid h-12 w-12 place-items-center rounded-md bg-mist text-pine"><CheckCircle2 size={24}/></span><h2 id="support-request-title" className="mt-4 font-display text-2xl font-bold text-charcoal">Support request prepared</h2><p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-stone">The request now appears as open in this frontend preview. The future support API will send it to the admin support queue.</p><button type="button" onClick={closeModal} className="button mt-6 bg-pine text-white hover:bg-[#0e2c22]">Close</button></div> : <><div className="pr-10"><div className="eyebrow mb-1">BOOKING SS-2048</div><h2 id="support-request-title" className="font-display text-2xl font-bold text-charcoal">Create support request</h2><p className="mt-2 text-sm leading-5 text-stone">Use this for non-emergency booking help. Call the active-trip desk for an urgent safety issue.</p></div><form onSubmit={submit} className="mt-5 space-y-4"><div className="grid gap-4 sm:grid-cols-2"><label className="block"><span className="mb-1.5 block text-sm font-semibold text-charcoal">Issue type</span><select value={type} onChange={(event) => setType(event.target.value)} className="field w-full"><option>Payment question</option><option>Pickup timing</option><option>Hotel</option><option>Transport</option><option>Guide</option><option>Meals</option><option>Documents</option><option>Other</option></select></label><label className="block"><span className="mb-1.5 block text-sm font-semibold text-charcoal">Priority</span><select value={priority} onChange={(event) => setPriority(event.target.value)} className="field w-full"><option>Normal</option><option>High</option></select></label></div><label className="block"><span className="mb-1.5 block text-sm font-semibold text-charcoal">What do you need help with?</span><textarea value={message} onChange={(event) => setMessage(event.target.value)} className="field min-h-28 w-full resize-y py-3" placeholder="Share the details the support team should review" required/></label><button type="submit" className="button w-full bg-pine text-white hover:bg-[#0e2c22]">Submit support request <LifeBuoy size={16}/></button></form></>}</motion.section></motion.div>}</AnimatePresence>;
+}
+
+function ChangeRequestModal({ open, onClose, onSubmitted }: { open: boolean; onClose: () => void; onSubmitted: (type: string) => void }) {
   const reduceMotion = useReducedMotion();
   const [changeType, setChangeType] = useState(changeTypes[0]);
   const [message, setMessage] = useState("");
@@ -205,6 +297,7 @@ function ChangeRequestModal({ open, onClose }: { open: boolean; onClose: () => v
   function submitRequest(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitted(true);
+    onSubmitted(changeType);
   }
 
   function closeModal() {

@@ -1,0 +1,7 @@
+import type { DestinationAdmin } from "../types/admin";
+
+export const adminDestinations: DestinationAdmin[] = [
+  { id: "dest-1", name: "Kalam", slug: "kalam", shortDescription: "Upper Swat base for forests and river travel.", fullDescription: "Kalam connects travelers with Ushu Forest, river viewpoints, and upper valley routes.", bestFor: "Couples, families, hiking", travelTime: "3.5 hours", popularServices: ["Hotels", "Transport", "Guides"], status: "Active", seoTitle: "Visit Kalam with SwatStay", seoDescription: "Plan a practical Kalam trip with local hotel and transport support." },
+  { id: "dest-2", name: "Malam Jabba", slug: "malam-jabba", shortDescription: "Mountain resort route near Mingora.", fullDescription: "Malam Jabba is suited to viewpoints, seasonal activities, and private mountain stays.", bestFor: "Mountain views, activities", travelTime: "2 hours", popularServices: ["Transport", "Activities", "Guides"], status: "Active", seoTitle: "Malam Jabba Travel Packages", seoDescription: "Compare SwatStay packages for Malam Jabba." },
+  { id: "dest-3", name: "Bahrain", slug: "bahrain", shortDescription: "Riverside town on the upper Swat route.", fullDescription: "Bahrain offers riverside meals, local markets, and a useful stop on longer valley trips.", bestFor: "Food, river, families", travelTime: "2.5 hours", popularServices: ["Restaurants", "Hotels", "Transport"], status: "Active", seoTitle: "Bahrain Swat Travel Guide", seoDescription: "Plan transport, stays, and meals in Bahrain, Swat." },
+];

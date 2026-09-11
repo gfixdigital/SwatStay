@@ -3,6 +3,7 @@
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { CustomSelect } from "./CustomSelect";
+import { CountryPhoneField } from "./CountryPhoneField";
 import { DatePicker } from "./DatePicker";
 import { PickupCityField } from "./PickupCityField";
 
@@ -21,7 +22,7 @@ export function CustomTripForm() {
     <PickupCityField/>
     <fieldset><legend className="text-xs font-semibold text-stone">What matters to your group?</legend><div className="mt-2 flex flex-wrap gap-2">{interests.map((interest) => { const active = selectedInterests.includes(interest); return <label key={interest} className={`cursor-pointer rounded-md border px-3 py-2 text-xs transition ${active ? "border-pine bg-pine text-white" : "border-border bg-white text-stone hover:border-river"}`}><input type="checkbox" name="interests" value={interest} checked={active} onChange={() => setSelectedInterests((current) => active ? current.filter((item) => item !== interest) : [...current, interest])} className="sr-only"/>{interest}</label>; })}</div></fieldset>
     <label className="text-xs font-semibold text-stone">Anything else we should plan for?<textarea name="specialRequests" rows={3} className="mt-1 w-full rounded-brand border border-border p-3 outline-none focus:border-river focus:ring-1 focus:ring-river" placeholder="Accessibility, food preferences, a celebration, or places you want to avoid..."/></label>
-    <div className="grid gap-4 border-t border-border pt-5 sm:grid-cols-2"><label className="text-xs font-semibold text-stone">Your name<input required name="fullName" className="field mt-1 w-full" placeholder="Your full name"/></label><label className="text-xs font-semibold text-stone">Contact number<input required name="phone" className="field mt-1 w-full" placeholder="+92 300 1234567"/></label><label className="text-xs font-semibold text-stone sm:col-span-2">Email address<input required type="email" name="email" className="field mt-1 w-full" placeholder="you@example.com"/></label></div>
+    <div className="grid gap-4 border-t border-border pt-5 sm:grid-cols-2"><label className="text-xs font-semibold text-stone">Your name<input required name="fullName" className="field mt-1 w-full" placeholder="Your full name"/></label><CountryPhoneField/><label className="text-xs font-semibold text-stone">Email address<input required type="email" name="email" className="field mt-1 w-full" placeholder="you@example.com"/></label><CustomSelect label="Preferred call language" name="preferredLanguage" value="English" options={[{ label: "English", value: "English" }, { label: "Urdu", value: "Urdu" }, { label: "Chinese", value: "Chinese" }]}/></div>
     <button className="button min-h-12 bg-pine text-white hover:bg-[#0e2c22]">Send my trip brief <ArrowRight size={16}/></button>
   </form>;
 }

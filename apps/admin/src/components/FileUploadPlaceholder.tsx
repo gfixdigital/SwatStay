@@ -1,0 +1,3 @@
+import { UploadCloud } from "lucide-react";
+
+export function FileUploadPlaceholder({ label = "Upload file", accept = "Images or documents" }: { label?: string; accept?: string }) { return <button type="button" className="grid min-h-28 w-full place-items-center rounded-lg border border-dashed border-border bg-snow p-4 text-center hover:border-river hover:bg-mist"><span><UploadCloud className="mx-auto text-river" size={22}/><strong className="mt-2 block text-sm text-charcoal">{label}</strong><small className="mt-1 block text-xs text-stone">{accept} · Frontend placeholder</small></span></button>; }

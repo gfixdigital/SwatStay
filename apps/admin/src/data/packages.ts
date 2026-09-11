@@ -1,0 +1,7 @@
+import type { AdminPackage } from "../types/admin";
+
+export const adminPackages: AdminPackage[] = [
+  { id: "pkg-1", title: "Couple Standard - Kalam", slug: "couple-standard-kalam", destination: "Kalam", packageType: "Couple", tier: "Standard", days: 3, nights: 2, price: 48000, currency: "PKR", services: ["Hotel", "Transport", "Meals"], itinerary: ["Mingora to Kalam", "Ushu Forest and river views", "Kalam morning and return"], status: "Active", seoTitle: "Kalam Couple Tour Package", seoDescription: "Three-day call-confirmed Kalam tour package for couples." },
+  { id: "pkg-2", title: "Family Basic - Swat", slug: "family-basic-swat", destination: "Swat", packageType: "Family", tier: "Basic", days: 2, nights: 1, price: 32000, currency: "PKR", services: ["Hotel", "Transport", "Breakfast"], itinerary: ["Mingora and Fizagat", "Madyan valley drive"], status: "Active", seoTitle: "Swat Family Tour Package", seoDescription: "A practical two-day Swat family tour package." },
+  { id: "pkg-3", title: "Private Premium - Malam Jabba", slug: "private-premium-malam-jabba", destination: "Malam Jabba", packageType: "Private", tier: "Premium", days: 3, nights: 2, price: 74000, currency: "PKR", services: ["Hotel", "Private transport", "Guide"], itinerary: ["Mingora to Malam Jabba", "Mountain day", "Bahrain and return"], status: "Inactive", seoTitle: "Private Malam Jabba Package", seoDescription: "Private three-day Malam Jabba trip with local support." },
+];

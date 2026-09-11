@@ -1,0 +1,1 @@
+export { bookings } from "./adminData";

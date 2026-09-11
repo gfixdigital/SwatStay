@@ -1,0 +1,3 @@
+import { Check } from "lucide-react";
+
+export function Timeline({ items }: { items: { title: string; detail: string; time: string; complete?: boolean }[] }) { return <div className="space-y-5">{items.map((item) => <div key={`${item.title}-${item.time}`} className="relative border-l border-border pl-5"><span className={`absolute -left-2 top-0 grid h-4 w-4 place-items-center rounded-full border-2 border-white ${item.complete ? "bg-pine" : "bg-border"}`}>{item.complete && <Check size={9} className="text-white"/>}</span><strong className="block text-sm text-charcoal">{item.title}</strong><p className="mt-1 text-sm text-stone">{item.detail}</p><span className="mt-1 block text-xs font-semibold text-river">{item.time}</span></div>)}</div>; }

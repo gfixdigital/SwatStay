@@ -1,0 +1,4 @@
+import { AlertTriangle } from "lucide-react";
+import { AdminModal } from "./AdminModal";
+
+export function ConfirmDialog({ open, title, message, confirmLabel, danger, onConfirm, onClose }: { open: boolean; title: string; message: string; confirmLabel: string; danger?: boolean; onConfirm: () => void; onClose: () => void }) { return <AdminModal open={open} onClose={onClose} title={title}><div className="flex gap-3 rounded-md bg-snow p-3"><AlertTriangle size={19} className={danger ? "text-[#9c3f2e]" : "text-amber"}/><p className="text-sm leading-6 text-stone">{message}</p></div><div className="mt-4 flex justify-end gap-2"><button type="button" className="button-secondary" onClick={onClose}>Go back</button><button type="button" className={danger ? "button-primary border-[#9c3f2e] bg-[#9c3f2e] hover:bg-[#813326]" : "button-primary"} onClick={() => { onConfirm(); onClose(); }}>{confirmLabel}</button></div></AdminModal>; }

@@ -15,14 +15,15 @@ export const providers: Provider[] = [
 ];
 
 export const payments: Payment[] = [
-  { id: "pay-301", bookingReference: "SS-2048", touristName: "Ayesha Khan", amount: 15000, method: "Bank transfer", referenceNumber: "FT-882410", submittedAt: "2026-10-08 17:05", status: "Proof submitted" },
-  { id: "pay-302", bookingReference: "SS-2055", touristName: "Sara Ahmed", amount: 20000, method: "JazzCash", referenceNumber: "JC-420815", submittedAt: "2026-10-09 17:24", status: "Verified" },
-  { id: "pay-303", bookingReference: "SS-2042", touristName: "Omar Raza", amount: 52000, method: "Bank transfer", referenceNumber: "FT-881902", submittedAt: "2026-10-05 12:14", status: "Verified" },
+  { id: "pay-301", bookingReference: "SS-2048", touristName: "Ayesha Khan", amount: 15000, method: "Bank transfer", referenceNumber: "FT-882410", proofFileName: "bank-transfer-receipt.jpg", submittedAt: "2026-10-08 17:05", status: "Proof submitted", note: "Awaiting finance review." },
+  { id: "pay-302", bookingReference: "SS-2055", touristName: "Sara Ahmed", amount: 20000, method: "JazzCash", referenceNumber: "JC-420815", proofFileName: "jazzcash-receipt.png", submittedAt: "2026-10-09 17:24", status: "Verified", verifiedBy: "Adnan", verifiedAt: "2026-10-09 17:40", note: "Reference matched." },
+  { id: "pay-303", bookingReference: "SS-2042", touristName: "Omar Raza", amount: 52000, method: "Bank transfer", referenceNumber: "FT-881902", proofFileName: "full-payment-proof.pdf", submittedAt: "2026-10-05 12:14", status: "Verified", verifiedBy: "Asim", verifiedAt: "2026-10-05 12:28", note: "Full payment received." },
 ];
 
 export const supportTickets: SupportTicket[] = [
   { id: "SUP-81", bookingReference: "SS-2042", touristName: "Omar Raza", issueType: "Pickup timing", summary: "Driver arrival needs to move 30 minutes earlier.", priority: "High", status: "In progress", assignedTeamMember: "Asim Khan", updatedAt: "10 minutes ago" },
   { id: "SUP-82", bookingReference: "SS-2048", touristName: "Ayesha Khan", issueType: "Meal preference", summary: "Confirm vegetarian dinner with hotel before arrival.", priority: "Normal", status: "Open", assignedTeamMember: "Sana Iqbal", updatedAt: "35 minutes ago" },
+  { id: "SUP-83", bookingReference: "SS-2048", touristName: "Ayesha Khan", issueType: "Trip change: Add activity", summary: "Traveler asked to discuss adding a guided activity and requested a callback before any booking update.", priority: "Normal", status: "Open", assignedTeamMember: "Sana Iqbal", updatedAt: "48 minutes ago" },
   { id: "SUP-77", bookingReference: "SS-2040", touristName: "Usman Tariq", issueType: "Hotel invoice", summary: "Tourist requested a corrected invoice name.", priority: "Normal", status: "Resolved", assignedTeamMember: "Ahmed Shah", updatedAt: "Yesterday" },
 ];
 
@@ -37,9 +38,9 @@ export const providerSuggestions: ProviderSuggestion[] = [
 ];
 
 export const teamMembers: TeamMember[] = [
-  { id: "tm-1", name: "Sana Iqbal", role: "Tourist support", activeQueue: 2 },
-  { id: "tm-2", name: "Ahmed Shah", role: "Booking operations", activeQueue: 2 },
-  { id: "tm-3", name: "Asim Khan", role: "Provider operations", activeQueue: 1 },
+  { id: "tm-1", name: "Sana Iqbal", role: "Support", activeQueue: 2 },
+  { id: "tm-2", name: "Ahmed Shah", role: "Operations", activeQueue: 2 },
+  { id: "tm-3", name: "Asim Khan", role: "Operations", activeQueue: 1 },
 ];
 
 export const formatPkr = (amount: number) => `PKR ${amount.toLocaleString("en-PK")}`;

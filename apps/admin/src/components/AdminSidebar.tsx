@@ -1,14 +1,24 @@
 import { NavLink } from "react-router-dom";
-import { BarChart3, CalendarCheck2, CreditCard, Headphones, LayoutDashboard, PhoneCall, Settings, ShieldCheck, UsersRound, X } from "lucide-react";
+import { BarChart3, BookOpenText, CalendarCheck2, CircleDollarSign, CreditCard, FileClock, FolderKanban, HandCoins, Headphones, Images, Languages, LayoutDashboard, MapPinned, Package, PhoneCall, Settings, ShieldCheck, UsersRound, X } from "lucide-react";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/bookings", label: "Booking requests", icon: CalendarCheck2 },
   { to: "/call-queue", label: "Call queue", icon: PhoneCall },
-  { to: "/providers/approvals", label: "Provider approvals", icon: ShieldCheck },
+  { to: "/packages", label: "Packages", icon: Package },
+  { to: "/destinations", label: "Destinations", icon: MapPinned },
+  { to: "/providers", label: "Providers", icon: ShieldCheck },
+  { to: "/provider-suggestions", label: "Provider suggestions", icon: FolderKanban },
   { to: "/payments", label: "Payments", icon: CreditCard },
+  { to: "/commissions", label: "Commissions", icon: CircleDollarSign },
+  { to: "/payouts", label: "Payouts", icon: HandCoins },
   { to: "/support", label: "Support tickets", icon: Headphones },
+  { to: "/content", label: "Website content", icon: BookOpenText },
+  { to: "/media", label: "Media library", icon: Images },
+  { to: "/languages", label: "Languages", icon: Languages },
+  { to: "/team", label: "Team members", icon: UsersRound },
   { to: "/settings", label: "Settings", icon: Settings },
+  { to: "/audit-logs", label: "Audit logs", icon: FileClock },
 ];
 
 export function AdminSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {

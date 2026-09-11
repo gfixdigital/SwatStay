@@ -1,0 +1,1 @@
+export { supportTickets } from "./adminData";

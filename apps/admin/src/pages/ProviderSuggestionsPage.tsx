@@ -10,7 +10,7 @@ import type { ServiceType } from "../types/admin";
 
 export function ProviderSuggestionsPage() {
   const { id } = useParams();
-  const booking = bookings.find((item) => item.id === id);
+  const booking = bookings.find((item) => item.id === id) ?? bookings[0];
   const serviceTypes: ServiceType[] = ["Hotel", "Transport", "Guide", "Restaurant", "Activity"];
   const [active, setActive] = useState<ServiceType>("Hotel");
   const [selected, setSelected] = useState<Partial<Record<ServiceType, string>>>({});

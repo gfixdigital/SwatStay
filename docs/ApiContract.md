@@ -43,9 +43,21 @@ http://localhost:4000/api/v1
 - All responses must use JSON.
 - All protected routes require Bearer token auth.
 - Public package and destination routes do not require auth.
-- Admin routes require `ADMIN` or `SUPPORT` role.
+- Admin routes require the exact role allowed for that module. Navigation visibility is not authorization.
 - Provider routes require `PROVIDER` role.
 - Finance routes require `ADMIN` or `FINANCE` role.
+
+Planned admin access:
+
+| Role | Modules |
+|---|---|
+| `ADMIN` | Full admin panel, team access, settings, and audit logs |
+| `OPERATIONS` | Bookings, calls, packages, destinations, providers, assignments, support, content, and media |
+| `SUPPORT` | Dashboard, call queue, booking details, traveler change requests, and support tickets |
+| `FINANCE` | Payments, commissions, payouts, and booking payment summaries |
+| `QA` | Read-only workflow and content preview |
+
+NestJS guards must enforce these permissions on every protected endpoint. The admin frontend may hide unavailable navigation and actions for usability, but frontend hiding must never be treated as security.
 - Use pagination for list endpoints.
 - Use clear status values instead of booleans for booking lifecycle.
 
@@ -244,13 +256,13 @@ Response data:
 
 ### POST /admin/packages
 
-Protected: `ADMIN`.
+Protected: `ADMIN`, `OPERATIONS`.
 
 Purpose: create package.
 
 ### PATCH /admin/packages/:id
 
-Protected: `ADMIN`.
+Protected: `ADMIN`, `OPERATIONS`.
 
 Purpose: update package.
 
@@ -315,11 +327,39 @@ Protected: `TOURIST`.
 
 Purpose: tourist sees booking detail and itinerary.
 
+### POST /tourist/bookings/:id/change-requests
+
+Protected: `TOURIST` or public with a valid booking token.
+
+Purpose: tourist requests a booking change. Submitting this request never changes the booking automatically.
+
+Request:
+
+```json
+{
+  "changeType": "ADD_ACTIVITY",
+  "message": "Please call me about adding a guided activity on Day 2.",
+  "preferredCallbackAt": "2026-10-10T15:30:00+05:00"
+}
+```
+
+### GET /admin/bookings/:id/change-requests
+
+Protected: `ADMIN`, `OPERATIONS`, `SUPPORT`.
+
+Purpose: admin sees pending and completed traveler change requests for a booking.
+
+### PATCH /admin/change-requests/:id
+
+Protected: `ADMIN`, `OPERATIONS`, `SUPPORT`.
+
+Purpose: update request status, callback outcome, and resolution notes after speaking with the tourist.
+
 ## 9. Admin Booking Endpoints
 
 ### GET /admin/bookings
 
-Protected: `ADMIN`, `SUPPORT`.
+Protected: `ADMIN`, `OPERATIONS`, `SUPPORT`.
 
 Query:
 
@@ -329,11 +369,11 @@ Query:
 
 ### GET /admin/bookings/:id
 
-Protected: `ADMIN`, `SUPPORT`.
+Protected: `ADMIN`, `OPERATIONS`, `SUPPORT`.
 
 ### PATCH /admin/bookings/:id/call-confirm
 
-Protected: `ADMIN`, `SUPPORT`.
+Protected: `ADMIN`, `OPERATIONS`, `SUPPORT`.
 
 Purpose: support team confirms tourist by call.
 
@@ -370,7 +410,7 @@ Request:
 
 ### GET /admin/bookings/:id/provider-suggestions
 
-Protected: `ADMIN`.
+Protected: `ADMIN`, `OPERATIONS`.
 
 Purpose: system suggests providers for hotel, transport, guide, meals, and activities.
 
@@ -396,7 +436,7 @@ Response item:
 
 ### PATCH /admin/bookings/:id/assign-providers
 
-Protected: `ADMIN`.
+Protected: `ADMIN`, `OPERATIONS`.
 
 Request:
 
@@ -464,15 +504,15 @@ PENDING_REVIEW
 
 ### GET /admin/providers
 
-Protected: `ADMIN`.
+Protected: `ADMIN`, `OPERATIONS`.
 
 ### PATCH /admin/providers/:id/approve
 
-Protected: `ADMIN`.
+Protected: `ADMIN`, `OPERATIONS`.
 
 ### PATCH /admin/providers/:id/reject
 
-Protected: `ADMIN`.
+Protected: `ADMIN`, `OPERATIONS`.
 
 Request:
 
@@ -586,13 +626,24 @@ Email events:
 
 Protected or public with booking token.
 
+Request:
+
+```json
+{
+  "bookingId": "uuid",
+  "issueType": "PAYMENT_QUESTION",
+  "message": "Please confirm whether my updated receipt is readable.",
+  "priority": "NORMAL"
+}
+```
+
 ### GET /admin/support/tickets
 
-Protected: `ADMIN`, `SUPPORT`.
+Protected: `ADMIN`, `OPERATIONS`, `SUPPORT`.
 
 ### PATCH /admin/support/tickets/:id
 
-Protected: `ADMIN`, `SUPPORT`.
+Protected: `ADMIN`, `OPERATIONS`, `SUPPORT`.
 
 ## 15. Booking Status Values
 
