@@ -29,3 +29,14 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
 }
+
+.admin-nav-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(215, 232, 223, .42) transparent;
+  overscroll-behavior: contain;
+}
+
+.admin-nav-scroll::-webkit-scrollbar { width: 6px; }
+.admin-nav-scroll::-webkit-scrollbar-track { background: transparent; }
+.admin-nav-scroll::-webkit-scrollbar-thumb { background: rgba(215, 232, 223, .38); border-radius: 8px; }
+.admin-nav-scroll::-webkit-scrollbar-thumb:hover { background: rgba(215, 232, 223, .62); }

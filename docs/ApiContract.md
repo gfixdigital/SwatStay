@@ -61,6 +61,18 @@ NestJS guards must enforce these permissions on every protected endpoint. The ad
 - Use pagination for list endpoints.
 - Use clear status values instead of booleans for booking lifecycle.
 
+### Future rate limiting and abuse protection
+
+Rate limits must be enforced by the API gateway and NestJS guards, never by frontend checks alone. Initial MVP targets:
+
+- Public read endpoints: 120 requests per minute per IP.
+- Contact, booking, custom-trip, provider-registration, login, and password-reset endpoints: 5 requests per 15 minutes per IP plus a per-identifier limit where applicable.
+- Authenticated mutation endpoints: 60 requests per minute per user.
+- QR scan and voucher-code validation: 10 attempts per 5 minutes per provider account and device session.
+- Email, WhatsApp, and notification send actions: queued server-side with per-booking and per-recipient limits.
+
+The API should return HTTP `429` with a safe retry-after value. CAPTCHA or equivalent bot verification must be verified on the server for public forms after the provider is selected. Frontend checkboxes are only a visual preview and provide no protection.
+
 ## 3. Standard Response Shape
 
 Success:
@@ -370,6 +382,21 @@ Query:
 ### GET /admin/bookings/:id
 
 Protected: `ADMIN`, `OPERATIONS`, `SUPPORT`.
+
+### PATCH /admin/bookings/:id/assignment
+
+Protected: `ADMIN`, `OPERATIONS`.
+
+Assigns, reassigns, or unassigns the internal team owner for tourist follow-up. The API must add an immutable assignment history entry and notify the newly assigned user.
+
+Request:
+
+```json
+{
+  "assignedTeamMemberId": "uuid-or-null",
+  "reason": "Urdu confirmation call and vegetarian meal follow-up"
+}
+```
 
 ### PATCH /admin/bookings/:id/call-confirm
 
@@ -722,3 +749,75 @@ Connect APIs in this order:
 10. `GET /provider/bookings`
 11. `PATCH /provider/bookings/:bookingItemId/accept`
 12. `PATCH /provider/bookings/:bookingItemId/reject`
+
+## 21. Planned Service Voucher Endpoints
+
+These contracts document the approved QR flow only. They are not implemented yet.
+
+### POST /admin/bookings/:bookingId/vouchers
+
+Protected: `ADMIN`, `OPERATIONS`.
+
+Creates a draft voucher from confirmed booking items and provider assignments.
+
+### PATCH /admin/vouchers/:voucherId/activate
+
+Protected: `ADMIN`, `OPERATIONS`.
+
+Activates the voucher and prepares service-scoped traveler and provider notifications.
+
+### GET /admin/vouchers
+
+Protected: `ADMIN`, `OPERATIONS`, `SUPPORT`, `QA`.
+
+Supports booking, tourist, status, provider, service type, and travel-date filters.
+
+### GET /admin/vouchers/:voucherId
+
+Protected: `ADMIN`, `OPERATIONS`, `SUPPORT`, `QA`.
+
+Returns voucher metadata, assigned service items, delivery status, scan history, and audit events. It does not return raw identity documents.
+
+### POST /admin/vouchers/:voucherId/deliver
+
+Protected: `ADMIN`, `OPERATIONS`.
+
+Queues traveler dashboard/email delivery and separate provider assignment notifications.
+
+### PATCH /admin/vouchers/:voucherId/revoke
+
+Protected: `ADMIN`, `OPERATIONS`.
+
+Requires a reason and retains previous handoff history.
+
+### GET /traveler/bookings/:bookingId/voucher
+
+Protected: booking owner.
+
+Returns the active traveler-facing trip voucher and service progress.
+
+### POST /provider/vouchers/scan
+
+Protected: approved provider user.
+
+Accepts the signed voucher reference and the provider's selected service action. The API derives provider identity from authentication, validates assignment and voucher status, records the result, and never trusts a provider ID sent by the browser.
+
+The scan creates a validated service-handoff session. It does not complete the service by itself.
+
+### POST /provider/service-handoffs/:handoffId/complete
+
+Protected: assigned provider user.
+
+Records the actual service outcome after a successful voucher validation. The request includes only the assigned completion method, an optional provider note, and optional traveler acknowledgement. The API must reject completion when the provider is not assigned, the voucher is expired or revoked, or the service was already completed.
+
+### POST /provider/service-handoffs/:handoffId/issues
+
+Protected: assigned provider user.
+
+Creates a service exception instead of completing the handoff. Required fields: issue type and provider note. Optional fields: evidence file IDs and preferred callback time. This endpoint changes the service to `ISSUE_REPORTED`, creates an auditable support/operations task, and must never be used as a cancellation shortcut.
+
+### GET /provider/bookings/:bookingId/voucher-access
+
+Protected: assigned provider user.
+
+Returns only the traveler and service fields required for that provider's assignment.

@@ -1,12 +1,14 @@
 import { ArrowRight, CalendarCheck2, CreditCard, Headphones, PhoneCall, Plus, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
-import { bookings, payments, providers, supportTickets } from "../data/adminData";
+import { payments, providers, supportTickets } from "../data/adminData";
 import { PageHeader } from "../components/PageHeader";
 import { StatCard } from "../components/StatCard";
 import { StatusBadge } from "../components/StatusBadge";
 import { PaymentBadge } from "../components/PaymentBadge";
+import { useBookingsPreview } from "../hooks/useBookingsPreview";
 
 export function DashboardPage() {
+  const { bookings } = useBookingsPreview();
   const callPending = bookings.filter((booking) => booking.status === "Call pending");
   const pendingPayments = payments.filter((payment) => payment.status === "Proof submitted");
   const pendingProviders = providers.filter((provider) => provider.status === "Pending review");

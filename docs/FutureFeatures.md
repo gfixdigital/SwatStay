@@ -16,6 +16,8 @@
 | Print itinerary | Package details include a browser print layout with package, service, itinerary, cancellation, and contact information. | Browser print |
 | Currency preview | Package prices can be estimated in PKR, USD, or CNY using clearly identified static approximate rates. | `localStorage` |
 | Language foundation | English, Urdu, and Chinese preferences translate navigation and selected CTA labels, with English as fallback. | `localStorage` |
+| Admin QR voucher flow | Admin can create, activate, view, download, revoke, preview provider delivery, simulate scan validation, and inspect audit history. | `localStorage` in `apps/admin` |
+| Provider operations flow | Provider profiles can preview service-specific availability, assignments, code validation, service outcomes, issue reports, support, and settlement status for hotel, transport, guide, restaurant, photographer, and activity services. | Browser component state in `apps/provider` |
 
 ## Backend-dependent features still pending
 
@@ -31,10 +33,21 @@
 - Authentication and account synchronization
 - Payment gateway and payment proof workflows
 - Real support chat and emergency case handling
-- Real QR vouchers and authorized provider scanning
+- Real signed QR vouchers, authorized provider scanning, cross-application delivery, and realtime service updates
 - Weather and road condition integrations
-- Admin and provider operational workflows
+- Shared admin/provider records, authenticated permissions, and real-time operational workflows
 
 ## Current boundary
 
 The tourist website remains frontend-only. The previews in this file must not be treated as confirmed bookings, live pricing, translated legal content, or server-backed user records.
+
+## Frontend cleanup completed
+
+- Admin payment reviews persist in the browser, require a rejection reason, and update the linked booking preview.
+- Admin provider approval decisions require a confirmation path, preserve a browser review log, and show document and photo status.
+- Destination edits validate required content and unique slugs, preserve popular services, and persist locally.
+- The media library supports local preview uploads, guarded deletion of unassigned files, copy feedback, and persistent browser state.
+- Translation drafts, publishing guardrails, payout payment references, global search results, notification read state, and modal keyboard focus handling are implemented as frontend previews.
+- Tourist login now explains that password recovery is unavailable until real accounts are connected, and route-specific metadata was expanded.
+
+See `docs/FutureFixes.md` for work intentionally deferred until the NestJS API, authenticated roles, and secure storage exist.

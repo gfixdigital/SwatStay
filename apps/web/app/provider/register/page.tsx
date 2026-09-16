@@ -3,6 +3,9 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ProviderRegistrationForm } from "@/components/ProviderRegistrationForm";
 import { PageEnter } from "@/components/Animated";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Provider Registration", description: "Register a hotel, transport service, guide, restaurant, or activity service with SwatStay." };
 
 export default function ProviderRegisterPage() { return <><Header/><PageEnter><main className="min-h-screen bg-snow pt-2">
   <section className="border-b border-border bg-snow py-4"><div className="container flex flex-col justify-between gap-3 text-xs text-stone sm:flex-row sm:items-center"><div className="flex flex-wrap items-center gap-2"><a href="/" className="hover:text-pine">Home</a><span>›</span><a href="/provider/register" className="hover:text-pine">Providers</a><span>›</span><span className="font-medium text-charcoal">Service Registration</span></div><div className="inline-flex w-fit items-center gap-2 rounded-md border border-[#c4d7cb] bg-[#e8efea] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.08em] text-pine"><ShieldCheck size={15}/> KP Tourism Department Compliance Verified Registry</div></div></section>

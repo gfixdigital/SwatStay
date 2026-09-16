@@ -34,6 +34,7 @@ import {
   X,
 } from "lucide-react";
 import { getPackage } from "@/data/packages";
+import { useDemoAuth } from "@/hooks/useDemoAuth";
 
 type Service = {
   id: string;
@@ -66,6 +67,7 @@ const documents: { title: string; detail: string; status: DocumentStatus; icon: 
 const matrix = ["111111100101011111111", "100000101111010000001", "101110100101010111101", "101110111001010111101", "101110101101010111101", "100000101010010000001", "111111101010111111111", "000000001101000000000", "110111111001011011011", "001010010111100100100", "111101111010111110101", "010001001111001001110", "101110111001111010011", "000000001010001111000", "111111101101111010101", "100000100011001110010", "101110101111101011111", "101110111000011000100", "101110100111110111001", "100000101001011100110", "111111101110101011011"];
 
 export function DashboardView() {
+  const { traveler, ready } = useDemoAuth();
   const [activeTab, setActiveTab] = useState<DashboardTab>("overview");
   const [checkedIn, setCheckedIn] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
@@ -82,6 +84,8 @@ export function DashboardView() {
     { id: "meals", title: "Breakfast and dinner", provider: "Kalam View Guesthouse", detail: "Included in stay", status: "Ready", icon: <Utensils size={18}/> },
   ]);
 
+  if (ready && traveler && !traveler.hasDemoTrip) return <NewTravelerDashboard name={traveler.name}/>;
+
   function demoCheckIn() {
     setCheckedIn(true);
     setLastUpdated("A few seconds ago");
@@ -91,20 +95,20 @@ export function DashboardView() {
   const panelClass = (tab: DashboardTab) => activeTab === tab ? "block" : "hidden md:block";
 
   return <>
-    <section className="border-b border-border bg-snow py-3">
+    <section className="border-b border-border bg-snow py-2.5">
       <div className="container flex flex-col justify-between gap-2 text-xs text-stone sm:flex-row sm:items-center">
         <div className="flex items-center gap-2"><Link href="/" className="hover:text-pine">Home</Link><span>›</span><span className="font-medium text-charcoal">Traveler dashboard</span></div>
         <div className="inline-flex w-fit items-center gap-2 rounded-md border border-[#c4d7cb] bg-[#e8efea] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.08em] text-pine"><ShieldCheck size={14}/> Protected trip workspace</div>
       </div>
     </section>
 
-    <section className="border-b border-border bg-white py-5 md:py-8">
+    <section className="border-b border-border bg-white py-4 md:py-5">
       <div className="container">
-        <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-center">
-          <div><div className="eyebrow">TRAVELER OPERATIONS DESK</div><h1 className="font-display text-3xl font-bold leading-tight text-pine sm:text-4xl">Good morning, Ayesha</h1><p className="mt-1.5 max-w-xl text-sm leading-6 text-stone">Your confirmed trip, provider arrangements, payments, and support details in one place.</p></div>
-          <div className="flex flex-wrap items-center gap-2"><Link href="/packages" className="button min-h-9 border-border bg-white px-3 text-xs text-pine hover:bg-mist sm:text-sm">Plan another trip <ArrowUpRight size={15}/></Link><button type="button" onClick={() => setLastUpdated("Just now")} className="button min-h-9 bg-pine px-3 text-xs text-white hover:bg-[#0e2c22] sm:text-sm"><RefreshCw size={15}/> Refresh status</button><span className="w-full text-right text-[11px] text-stone">Frontend preview · {lastUpdated}</span></div>
+        <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-end">
+          <div><div className="eyebrow">MY TRIP · SS-2048</div><h1 className="font-display text-2xl font-bold leading-tight text-pine sm:text-3xl">Welcome back, {traveler?.name.split(" ")[0] || "Ayesha"}</h1><p className="mt-1 max-w-2xl text-sm leading-5 text-stone">Your Kalam trip is confirmed. Review the payment proof, provider arrangements, itinerary, and support requests below.</p></div>
+          <div className="flex flex-wrap items-center gap-2"><Link href="/packages" className="button min-h-9 border-border bg-white px-3 text-xs text-pine hover:bg-mist sm:text-sm">Plan another trip <ArrowUpRight size={15}/></Link><button type="button" onClick={() => setLastUpdated("Just now")} className="button min-h-9 bg-pine px-3 text-xs text-white hover:bg-[#0e2c22] sm:text-sm"><RefreshCw size={15}/> Refresh status</button><span className="text-[11px] text-stone">Updated: {lastUpdated}</span></div>
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:mt-5 lg:grid-cols-4"><Metric icon={<BadgeCheck/>} label="Trip status" value="Confirmed" tone="green"/><Metric icon={<CalendarDays/>} label="Travel dates" value="12–14 Oct 2026"/><Metric icon={<WalletCards/>} label="Payment" value="Proof under review" tone="amber"/><Metric icon={<MessageSquare/>} label="Support desk" value="1 open request" tone="blue"/></div>
+        <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-4"><Metric icon={<BadgeCheck/>} label="Trip status" value="Confirmed" tone="green"/><Metric icon={<CalendarDays/>} label="Travel dates" value="12–14 Oct 2026"/><Metric icon={<WalletCards/>} label="Payment" value="Proof under review" tone="amber"/><Metric icon={<MessageSquare/>} label="Support desk" value="1 open request" tone="blue"/></div>
       </div>
     </section>
 
@@ -119,6 +123,8 @@ export function DashboardView() {
         <div className="space-y-5">
           <div className={`${panelClass("overview")} space-y-5`} role="tabpanel">
             <TripSummary/>
+            <ActivityTimeline checkedIn={checkedIn}/>
+            <ItinerarySection/>
             <div className="grid gap-4 xl:grid-cols-2"><CallConfirmation/><PaymentBreakdown proofStatus={paymentProofStatus} onUpload={() => setPaymentProofOpen(true)}/></div>
           </div>
 
@@ -128,16 +134,15 @@ export function DashboardView() {
           </div>
 
           <div className={`${panelClass("itinerary")} space-y-5`} role="tabpanel">
-            <ItinerarySection/>
-            <ActivityTimeline checkedIn={checkedIn}/>
+            <p className="rounded-brand border border-border bg-white p-4 text-sm leading-6 text-stone">Your coordination timeline and day-by-day plan are shown at the top of the Overview tab so important trip information is visible first.</p>
           </div>
         </div>
 
         <aside className={`${panelClass("support")} space-y-4 lg:sticky lg:top-28`} role="tabpanel">
+          <section className="rounded-brand border border-border bg-white p-4"><div className="flex items-center gap-2"><QrCode size={18} className="text-river"/><div><h2 className="font-display text-base font-semibold text-charcoal">Service QR voucher</h2><p className="text-xs text-stone">Prototype preview for provider check-in</p></div></div><button type="button" onClick={() => setQrOpen(true)} className="button mt-3 min-h-9 w-full bg-pine px-3 text-xs text-white hover:bg-[#0e2c22]">Show QR voucher <ArrowUpRight size={14}/></button></section>
           <button type="button" onClick={() => setChangeOpen(true)} className="group flex w-full items-center justify-between rounded-brand border border-pine bg-pine p-4 text-left text-white transition hover:-translate-y-0.5 hover:bg-[#0e2c22]"><span><strong className="block font-display text-lg">Request a trip change</strong><small className="mt-1 block text-xs text-[#c3ebd8]">The GFix team will call before changing the booking.</small></span><ArrowUpRight size={18} className="shrink-0"/></button>
           <SupportRequestCard status={supportStatus} onOpen={() => setSupportOpen(true)}/>
           <EmergencySupport/>
-          <section className="rounded-brand border border-border bg-white p-4"><div className="flex items-center gap-2"><QrCode size={18} className="text-river"/><div><h2 className="font-display text-base font-semibold text-charcoal">Service QR</h2><p className="text-xs text-stone">Prototype preview only</p></div></div><button type="button" onClick={() => setQrOpen(true)} className="button mt-3 min-h-9 w-full border-border bg-white px-3 text-xs text-pine hover:bg-mist">Show QR voucher <ArrowUpRight size={14}/></button></section>
         </aside>
       </div>
     </section>
@@ -146,6 +151,17 @@ export function DashboardView() {
     <PaymentProofModal open={paymentProofOpen} onClose={() => setPaymentProofOpen(false)} onSubmitted={() => setPaymentProofStatus("Updated proof submitted")}/>
     <SupportRequestModal open={supportOpen} onClose={() => setSupportOpen(false)} onSubmitted={(type) => setSupportStatus(`DEMO-SUPPORT · ${type} · Open`)}/>
     <QrVoucherModal open={qrOpen} checkedIn={checkedIn} onClose={() => setQrOpen(false)} onCheckIn={demoCheckIn}/>
+  </>;
+}
+
+function NewTravelerDashboard({ name }: { name: string }) {
+  const firstName = name.split(" ")[0] || "Traveler";
+  return <>
+    <section className="border-b border-border bg-snow py-2.5"><div className="container flex items-center justify-between gap-3 text-xs text-stone"><div className="flex items-center gap-2"><Link href="/" className="hover:text-pine">Home</Link><span>›</span><span className="font-medium text-charcoal">Traveler dashboard</span></div><div className="inline-flex items-center gap-2 rounded-md border border-[#c4d7cb] bg-[#e8efea] px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[.07em] text-pine"><ShieldCheck size={13}/> Traveler workspace</div></div></section>
+    <main className="py-6 md:py-9"><div className="container max-w-5xl"><div className="flex flex-col justify-between gap-4 border-b border-border pb-5 sm:flex-row sm:items-end"><div><div className="eyebrow">YOUR TRIPS</div><h1 className="font-display text-2xl font-bold text-pine sm:text-3xl">Welcome, {firstName}</h1><p className="mt-1.5 max-w-xl text-sm leading-5 text-stone">You do not have a booking request yet. Start with a package or tell us what kind of Swat trip you need.</p></div><div className="flex flex-wrap gap-2"><Link href="/packages" className="button bg-pine text-white hover:bg-[#0e2c22]">Browse packages <ArrowUpRight size={15}/></Link><Link href="/custom-trip" className="button border-border bg-white text-pine hover:bg-mist">Plan a custom trip</Link></div></div>
+      <section className="mt-5 overflow-hidden rounded-brand border border-border bg-white"><div className="border-b border-border bg-mist px-4 py-3"><h2 className="font-display text-lg font-bold text-charcoal">What happens after you submit a request</h2><p className="mt-1 text-xs text-stone">Nothing is booked or charged automatically.</p></div><div className="grid divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">{[["1", "Send trip details", "Choose dates, travelers, pickup, and package preferences."], ["2", "Confirm by phone", "GFix calls to check availability, providers, and payment options."], ["3", "Track the booking", "Your confirmed services, itinerary, payments, and support appear here."]].map(([number, title, text]) => <div key={number} className="p-4"><span className="grid h-8 w-8 place-items-center rounded-md bg-pine text-sm font-bold text-white">{number}</span><h3 className="mt-3 text-sm font-bold text-charcoal">{title}</h3><p className="mt-1 text-sm leading-5 text-stone">{text}</p></div>)}</div></section>
+      <div className="mt-5 grid gap-4 sm:grid-cols-2"><section className="rounded-brand border border-border bg-white p-4"><h2 className="font-display text-lg font-bold text-charcoal">Saved packages</h2><p className="mt-1 text-sm leading-5 text-stone">Keep useful package options together while you decide.</p><Link href="/saved-packages" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-river">Open saved packages <ArrowUpRight size={14}/></Link></section><section className="rounded-brand border border-border bg-white p-4"><h2 className="font-display text-lg font-bold text-charcoal">Need planning help?</h2><p className="mt-1 text-sm leading-5 text-stone">Ask about routes, family needs, pickup, hotel level, or international travel support.</p><div className="mt-3 flex gap-3"><a href="https://wa.me/92946000000" className="inline-flex items-center gap-1 text-sm font-semibold text-river"><MessageCircle size={14}/> WhatsApp</a><a href="tel:+92946000000" className="inline-flex items-center gap-1 text-sm font-semibold text-river"><PhoneCall size={14}/> Call</a></div></section></div>
+    </div></main>
   </>;
 }
 
@@ -168,9 +184,10 @@ function CallConfirmation() {
 function PaymentBreakdown({ proofStatus, onUpload }: { proofStatus: PaymentProofStatus; onUpload: () => void }) {
   return <section className="rounded-brand border border-border bg-white p-4 md:p-5">
     <div className="flex items-start justify-between gap-3"><div><div className="eyebrow mb-1">PAYMENT BREAKDOWN</div><h2 className="font-display text-xl font-bold text-charcoal">PKR 48,000 total</h2></div><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-[#faf3e8] text-amber"><Banknote size={18}/></span></div>
-    <dl className="mt-4 divide-y divide-border text-sm"><DetailRow label="Amount submitted" value="PKR 15,000"/><DetailRow label="Balance after verification" value="PKR 33,000"/><DetailRow label="Payment method" value="Bank transfer"/><DetailRow label="Payment proof" value={proofStatus}/></dl>
-    <button type="button" onClick={onUpload} className="button mt-4 min-h-10 w-full border-border bg-white px-3 text-xs text-pine hover:bg-mist"><Upload size={15}/> Update payment proof</button>
-    <p className="mt-4 rounded-md border border-[#eed7b8] bg-[#faf3e8] p-3 text-xs leading-5 text-stone">Final payment and proof status are confirmed by the GFix team during booking coordination.</p>
+    <dl className="mt-4 divide-y divide-border text-sm"><DetailRow label="Amount submitted" value="PKR 15,000"/><DetailRow label="Remaining balance" value="PKR 33,000"/><DetailRow label="Payment method" value="Bank transfer"/><DetailRow label="Payment proof" value={proofStatus}/></dl>
+    <div className="mt-4 rounded-md border border-border bg-snow p-3 text-xs leading-5 text-stone"><strong className="block text-sm text-charcoal">Transfer account for this booking</strong><dl className="mt-2 space-y-1"><div className="flex justify-between gap-3"><dt>Account title</dt><dd className="font-semibold text-charcoal">GFix Travel Services</dd></div><div className="flex justify-between gap-3"><dt>Bank</dt><dd className="font-semibold text-charcoal">Demo Bank Pakistan</dd></div><div className="flex justify-between gap-3"><dt>Account number</dt><dd className="font-semibold text-charcoal">0000 2048 4800</dd></div><div className="flex justify-between gap-3"><dt>Reference</dt><dd className="font-semibold text-charcoal">SS-2048</dd></div></dl><p className="mt-2">Use your booking reference as the transfer note. These are placeholder details for the frontend review.</p></div>
+    <button type="button" onClick={onUpload} className="button mt-3 min-h-10 w-full border-border bg-white px-3 text-xs text-pine hover:bg-mist"><Upload size={15}/> Upload or update payment proof</button>
+    <p className="mt-3 rounded-md border border-[#eed7b8] bg-[#faf3e8] p-3 text-xs leading-5 text-stone">Final balance, bank details, and proof status are confirmed by the GFix team during booking coordination.</p>
   </section>;
 }
 
@@ -179,8 +196,10 @@ function ServiceVouchers({ services, checkedIn }: { services: Service[]; checked
 }
 
 function DocumentsSection({ proofStatus }: { proofStatus: PaymentProofStatus }) {
+  const [expanded, setExpanded] = useState(false);
   const visibleDocuments = documents.map((document) => document.title === "Payment receipt" ? { ...document, detail: proofStatus, status: "Pending confirmation" as DocumentStatus } : document);
-  return <section className="rounded-brand border border-border bg-white p-4 md:p-5"><div><div className="eyebrow mb-1">DOCUMENTS & DOWNLOADS</div><h2 className="font-display text-xl font-bold text-charcoal">Trip files</h2><p className="mt-1 text-sm text-stone">Available files download locally. Pending files require GFix confirmation.</p></div><div className="mt-4 grid gap-2 sm:grid-cols-2">{visibleDocuments.map((document) => <DocumentItem key={document.title} {...document}/>)}</div></section>;
+  const shown = expanded ? visibleDocuments : visibleDocuments.slice(0, 2);
+  return <section className="rounded-brand border border-border bg-white p-4 md:p-5"><div className="flex items-start justify-between gap-3"><div><div className="eyebrow mb-1">DOCUMENTS & DOWNLOADS</div><h2 className="font-display text-xl font-bold text-charcoal">Trip files</h2><p className="mt-1 text-sm text-stone">Available files download locally. Pending files require GFix confirmation.</p></div><button type="button" onClick={() => setExpanded((current) => !current)} className="button min-h-8 shrink-0 border-border bg-white px-2.5 text-xs text-pine hover:bg-mist">{expanded ? "Show less" : "Show more"}</button></div><div className="mt-4 grid gap-2 sm:grid-cols-2">{shown.map((document) => <DocumentItem key={document.title} {...document}/>)}</div></section>;
 }
 
 function DocumentItem({ title, detail, status, icon }: { title: string; detail: string; status: DocumentStatus; icon: React.ReactNode }) {
@@ -211,7 +230,7 @@ function SupportRequestCard({ status, onOpen }: { status: string; onOpen: () => 
   return <section className="rounded-brand border border-border bg-white p-4">
     <div className="flex items-start gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-mist text-river"><LifeBuoy size={18}/></span><div><div className="eyebrow mb-1">BOOKING SUPPORT</div><h2 className="font-display text-lg font-semibold text-charcoal">Request help from GFix</h2></div></div>
     <p className="mt-3 rounded-md bg-snow p-3 text-xs font-semibold leading-5 text-stone">{status}</p>
-    <button type="button" onClick={onOpen} className="button mt-3 min-h-9 w-full border-border bg-white px-3 text-xs text-pine hover:bg-mist">Create support request <ArrowUpRight size={14}/></button>
+    <div className="mt-3 grid grid-cols-2 gap-2"><Link href="/dashboard/support" className="button min-h-9 border-border bg-white px-2 text-xs text-pine hover:bg-mist">Support center</Link><button type="button" onClick={onOpen} className="button min-h-9 bg-pine px-2 text-xs text-white hover:bg-[#0e2c22]">New request <ArrowUpRight size={14}/></button></div>
   </section>;
 }
 

@@ -1,5 +1,19 @@
 # SwatStay Database Schema
 
+## Frontend-preview fields to persist later
+
+The following fields are now represented in the traveler/admin interfaces and must be included when database work begins:
+
+- `booking_provider_arrangements`: booking ID, service type, provider ID, provider name snapshot, selection status, coordinator note, selected by, selected at, provider-confirmed at.
+- `payment_instructions`: booking ID, account title, bank or wallet, masked account identifier, payment-reference rule, effective dates, enabled status.
+- `payment_proofs`: booking ID, amount, method, transaction reference, secure file URL, submitted at, review status, finance reviewer, reviewer note.
+- `support_tickets`: booking ID, tourist ID, issue type, priority, status, assigned team member, tags, created at, updated at, resolved at.
+- `support_messages`: ticket ID, author ID, audience (`traveler` or `internal`), message body, attachments, delivered/read timestamps.
+- `support_transfers`: ticket ID, previous assignee, next assignee, actor, reason, transferred at.
+- `booking_events`: booking ID, event type, actor, payload, created at for the traveler timeline and admin audit history.
+
+The API must authorize every action and publish only traveler-visible messages/events to the traveler dashboard. Internal notes, finance evidence, provider commission, and payout information must never be exposed to travelers.
+
 ## 1. Purpose
 
 This file defines the first database plan for the SwatStay tourism platform.
@@ -137,6 +151,8 @@ model User {
   touristProfile    TouristProfile?
   providerProfile   Provider?
   auditLogs         AuditLog[]
+  bookingAssignments BookingTeamAssignment[] @relation("AssignedTeamMember")
+  assignmentsMade   BookingTeamAssignment[] @relation("AssignmentMadeBy")
 }
 
 model TouristProfile {
@@ -321,6 +337,7 @@ model Booking {
   callNotes              String?
   callConfirmedAt        DateTime?
   callConfirmedById      String?
+  assignedTeamMemberId   String?
   totalAmount            Int?
   amountPaid             Int           @default(0)
   currency               String        @default("PKR")
@@ -334,6 +351,24 @@ model Booking {
   commissions            Commission[]
   supportTickets         SupportTicket[]
   changeRequests         BookingChangeRequest[]
+  teamAssignments        BookingTeamAssignment[]
+}
+
+model BookingTeamAssignment {
+  id                   String   @id @default(uuid())
+  bookingId            String
+  assignedTeamMemberId String?
+  previousMemberId     String?
+  assignedByUserId     String
+  reason               String
+  assignedAt           DateTime @default(now())
+
+  booking              Booking  @relation(fields: [bookingId], references: [id])
+  assignedTeamMember   User?    @relation("AssignedTeamMember", fields: [assignedTeamMemberId], references: [id])
+  assignedBy           User     @relation("AssignmentMadeBy", fields: [assignedByUserId], references: [id])
+
+  @@index([bookingId, assignedAt])
+  @@index([assignedTeamMemberId, assignedAt])
 }
 
 model BookingItem {
@@ -607,8 +642,29 @@ The current website includes a frontend-only support widget with chat, quick act
 
 - `SupportConversation`: id, userId, bookingId, status, priority, assignedAgentId, lastMessageAt, createdAt, closedAt.
 - `SupportMessage`: conversationId, senderType, senderId, body, attachmentFileId, sentAt, readAt.
-- `ServiceVoucher`: bookingId, voucherCode, qrPayload, status, expiresAt, createdAt.
-- `ServiceHandoff`: voucherId, bookingItemId, providerId, serviceType, scannedAt, scannedByUserId, location, notes.
-- `ServiceStatusEvent`: bookingItemId, status, actorType, actorId, note, occurredAt.
+- `ServiceVoucher`: id, bookingId, voucherCode, signedTokenHash, status, activatedAt, expiresAt, revokedAt, revokedByUserId, revokeReason, createdByUserId, createdAt, updatedAt.
+- `ServiceVoucherItem`: id, voucherId, bookingItemId, providerId, serviceType, scheduledFor, location, status, completedAt, createdAt, updatedAt.
+- `VoucherDelivery`: id, voucherId, audienceType, audienceId, channel, destination, status, preparedAt, sentAt, openedAt, failedAt, failureReason.
+- `ServiceHandoff`: id, voucherId, voucherItemId, bookingItemId, providerId, serviceType, scanResult, scannedAt, scannedByUserId, approximateLocation, deviceSessionId, notes.
+- `ServiceStatusEvent`: id, bookingItemId, voucherId, status, actorType, actorId, note, occurredAt.
+- `VoucherAuditEvent`: id, voucherId, eventType, actorType, actorId, previousStatus, nextStatus, reason, metadata, occurredAt.
+
+For a trustworthy completion record, extend `ServiceVoucherItem` or create a linked `ServiceCompletion` record with: id, voucherItemId, completionStatus, completionMethod, deliveredAt, completedByUserId, guestAcknowledgedAt, guestAcknowledgementMethod, providerNote, issueReason, evidenceFileId, createdAt, and updatedAt. `completionMethod` should distinguish provider confirmation, traveler acknowledgement, and admin correction. A QR scan only proves voucher validation; it must not set `completionStatus` to complete on its own.
+
+Voucher statuses: `DRAFT`, `ACTIVE`, `PARTIALLY_USED`, `COMPLETED`, `EXPIRED`, `REVOKED`.
+
+Voucher service statuses: `READY`, `COMPLETED`, `ISSUE_REPORTED`, `CANCELLED`.
+
+Scan results: `ACCEPTED`, `ALREADY_COMPLETED`, `EXPIRED`, `REVOKED`, `WRONG_PROVIDER`, `SERVICE_NOT_ASSIGNED`, `MANUAL_REVIEW_REQUIRED`.
+
+The tourist can see one trip QR. The API resolves the scanning provider account to its assigned `ServiceVoucherItem`, so hotel, transport, guide, restaurant, and activity handoffs remain separate without asking the tourist to manage multiple codes.
+
+Provider delivery must be service-scoped. It may include booking reference, tourist display name, party size, service schedule, pickup or arrival location, language, and service-specific notes. It must exclude CNIC, passport, payment proof, unrelated provider assignments, and internal admin notes.
 
 The QR payload should contain only a short signed voucher reference, never CNIC, passport, phone, or other sensitive data. Provider scanning should be authorized by provider account and should create an auditable handoff event. The tourist dashboard can then receive status changes through a realtime channel and show hotel check-in, transport pickup, guide arrival, meal completion, and issue resolution without trusting client-side status changes.
+
+Service-specific completion rules: hotel confirms check-in or check-out, transport confirms pickup or drop-off, guide confirms the guided route or activity, restaurant confirms meals were served, photographer confirms the session finished, and activity providers confirm the activity handoff. A provider can report an issue instead of completing the service. Optional traveler acknowledgement improves dispute handling, but GFix can resolve exceptions through an audited admin correction.
+
+### Current frontend QR workflow
+
+`apps/admin` now includes a browser-only voucher workflow for generating a draft, activating it, preparing traveler and provider delivery previews, viewing the traveler QR, simulating accepted or rejected provider scans, revoking the voucher, and reviewing its audit history. It uses the localStorage key `swatstay.admin.vouchers.preview`. This state is not shared with `apps/web` or `apps/provider` because each application runs on a separate browser origin. Cross-application delivery and live updates remain backend work.

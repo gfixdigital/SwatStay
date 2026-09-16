@@ -1,22 +1,46 @@
-import { Download, Search } from "lucide-react";
+import { Download, Search, UsersRound } from "lucide-react";
 import { useMemo, useState } from "react";
 import { BookingTable } from "../components/BookingTable";
 import { PageHeader } from "../components/PageHeader";
-import { bookings } from "../data/adminData";
+import { teamMembers } from "../data/adminData";
+import { useBookingsPreview } from "../hooks/useBookingsPreview";
+import type { Booking } from "../types/admin";
 
 export function BookingsPage() {
-  const [rows, setRows] = useState(bookings);
+  const { bookings } = useBookingsPreview();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("All");
   const [destination, setDestination] = useState("All");
   const [date, setDate] = useState("");
   const [packageType, setPackageType] = useState("All");
   const [payment, setPayment] = useState("All");
+  const [assignedMember, setAssignedMember] = useState("All");
   const [exported, setExported] = useState(false);
-  const filtered = useMemo(() => rows.filter((booking) => {
+
+  const filtered = useMemo(() => bookings.filter((booking) => {
     const query = search.toLowerCase();
     const matchesSearch = !query || [booking.reference, booking.touristName, booking.phone, booking.packageName].some((value) => value.toLowerCase().includes(query));
-    return matchesSearch && (status === "All" || booking.status === status) && (destination === "All" || booking.destination === destination) && (packageType === "All" || booking.packageName.startsWith(packageType)) && (payment === "All" || booking.paymentStatus === payment) && (!date || booking.travelStartDate === date);
-  }), [rows, search, status, destination, date, packageType, payment]);
-  return <><PageHeader eyebrow="BOOKING OPERATIONS" title="Booking requests" description="Search and review tourist requests before calls, payments, and provider assignments." actions={<button type="button" className="button-secondary" onClick={() => setExported(true)}><Download size={15}/> Export placeholder</button>}/><section className="mb-4 grid gap-3 rounded-lg border border-border bg-white p-3 md:grid-cols-2 xl:grid-cols-3"><label className="relative"><span className="sr-only">Search bookings</span><Search className="absolute left-3 top-2.5 text-stone" size={16}/><input className="field pl-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Reference, tourist, phone, package"/></label><select className="field" value={status} onChange={(event) => setStatus(event.target.value)}><option>All</option>{[...new Set(rows.map((booking) => booking.status))].map((item) => <option key={item}>{item}</option>)}</select><select className="field" value={destination} onChange={(event) => setDestination(event.target.value)}><option>All</option>{[...new Set(rows.map((booking) => booking.destination))].map((item) => <option key={item}>{item}</option>)}</select><select className="field" value={packageType} onChange={(event) => setPackageType(event.target.value)}><option>All</option><option>Couple</option><option>Family</option><option>Private</option></select><select className="field" value={payment} onChange={(event) => setPayment(event.target.value)}><option>All</option>{[...new Set(rows.map((booking) => booking.paymentStatus))].map((item) => <option key={item}>{item}</option>)}</select><input className="field" type="date" value={date} onChange={(event) => setDate(event.target.value)}/></section>{exported && <p className="mb-3 rounded-md bg-mist p-3 text-sm font-semibold text-pine">Export is a frontend placeholder. No file was generated.</p>}<div className="mb-3 flex items-center justify-between text-sm"><span className="text-stone">{filtered.length} request{filtered.length === 1 ? "" : "s"}</span>{(search || status !== "All" || destination !== "All" || packageType !== "All" || payment !== "All" || date) && <button type="button" className="text-link" onClick={() => { setSearch(""); setStatus("All"); setDestination("All"); setPackageType("All"); setPayment("All"); setDate(""); }}>Clear filters</button>}</div><BookingTable bookings={filtered} onStatusChange={(id, next) => setRows((current) => current.map((booking) => booking.id === id ? { ...booking, status: next } : booking))}/></>;
+    const matchesAssignee = assignedMember === "All" || (assignedMember === "Unassigned" ? booking.assignedSupportMember === "Unassigned" : booking.assignedSupportMember === assignedMember);
+    return matchesSearch && matchesAssignee && (status === "All" || booking.status === status) && (destination === "All" || booking.destination === destination) && (packageType === "All" || booking.packageName.startsWith(packageType)) && (payment === "All" || booking.paymentStatus === payment) && (!date || booking.travelStartDate === date);
+  }), [assignedMember, bookings, search, status, destination, date, packageType, payment]);
+
+  function clearFilters() {
+    setSearch(""); setStatus("All"); setDestination("All"); setPackageType("All"); setPayment("All"); setDate(""); setAssignedMember("All");
+  }
+
+  return <>
+    <PageHeader eyebrow="STEP 1 · BOOKING INBOX" title="Booking requests" description="Operations receives every new request here, assigns one queue owner, then hands it to Support for the confirmation call." actions={<button type="button" className="button-secondary" onClick={() => setExported(true)}><Download size={15}/> Export placeholder</button>}/>
+    <section className="mb-4 grid gap-3 rounded-lg border border-border bg-white p-3 md:grid-cols-2 xl:grid-cols-3">
+      <label className="relative"><span className="sr-only">Search bookings</span><Search className="absolute left-3 top-2.5 text-stone" size={16}/><input className="field pl-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Reference, tourist, phone, package"/></label>
+      <select className="field" value={status} onChange={(event) => setStatus(event.target.value)}><option>All</option>{[...new Set(bookings.map((booking) => booking.status))].map((item) => <option key={item}>{item}</option>)}</select>
+      <select className="field" value={destination} onChange={(event) => setDestination(event.target.value)}><option>All</option>{[...new Set(bookings.map((booking) => booking.destination))].map((item) => <option key={item}>{item}</option>)}</select>
+      <select className="field" value={packageType} onChange={(event) => setPackageType(event.target.value)}><option>All</option><option>Couple</option><option>Family</option><option>Private</option></select>
+      <select className="field" value={payment} onChange={(event) => setPayment(event.target.value)}><option>All</option>{[...new Set(bookings.map((booking) => booking.paymentStatus))].map((item) => <option key={item}>{item}</option>)}</select>
+      <input className="field" type="date" value={date} onChange={(event) => setDate(event.target.value)}/>
+      <label className="relative md:col-span-2 xl:col-span-1"><UsersRound className="pointer-events-none absolute left-3 top-2.5 text-stone" size={16}/><span className="sr-only">Assigned team member</span><select className="field pl-9" value={assignedMember} onChange={(event) => setAssignedMember(event.target.value)}><option>All</option><option>Unassigned</option>{teamMembers.map((member) => <option key={member.id}>{member.name}</option>)}</select></label>
+    </section>
+    {exported && <p className="mb-3 rounded-md bg-mist p-3 text-sm font-semibold text-pine">Export is a frontend placeholder. No file was generated.</p>}
+    <div className="mb-3 flex items-center justify-between text-sm"><span className="text-stone">{filtered.length} request{filtered.length === 1 ? "" : "s"}</span>{(search || status !== "All" || destination !== "All" || packageType !== "All" || payment !== "All" || date || assignedMember !== "All") && <button type="button" className="text-link" onClick={clearFilters}>Clear filters</button>}</div>
+    <BookingTable bookings={filtered}/>
+  </>;
 }

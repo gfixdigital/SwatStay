@@ -25,6 +25,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: item ? `${item.title} | SwatStay` : "Swat Package | SwatStay",
     description: item ? `${item.description} Call-confirmed booking support across Swat Valley.` : "Compare call-confirmed Swat tour packages.",
+    openGraph: item ? { title: item.title, description: item.description, images: [{ url: item.image }] } : undefined,
   };
 }
 
