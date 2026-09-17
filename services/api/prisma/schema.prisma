@@ -77,6 +77,8 @@ model User {
   fullName          String
   email             String?  @unique
   phone             String?  @unique
+  address           String?
+  travelPreferences Json?
   passwordHash      String?
   role              UserRole
   preferredLanguage Language @default(EN)
