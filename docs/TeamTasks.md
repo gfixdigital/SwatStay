@@ -49,7 +49,7 @@ Prepare the API so the other two developers can build feature modules against a 
   - [x] Team members or support assignments
   - [x] Providers and provider services
   - [x] Booking events / audit timeline
-- [x] Add seed data for development only.
+- [x] Remove development seed data before real verification.
 - [x] Add global request validation and CORS configuration for web, admin, and provider apps.
 - [x] Add JWT authentication endpoints and global role-guard foundation for tourist, admin, support, and provider users.
 - [x] Keep `/health` and add a database readiness check.
@@ -58,14 +58,14 @@ Prepare the API so the other two developers can build feature modules against a 
 ### Acceptance criteria
 
 - `pnpm --filter @swatstay/api typecheck` passes.
-- A clean local setup can run migrations and seed data using documented commands.
+- A clean setup can run migrations against an explicitly configured database; no demo data is inserted automatically.
 - Protected routes can identify the user and reject an incorrect role.
 - No Supabase service key or other secret is committed.
 - Asim and Ahmed can import shared types/status values without duplicating them.
 
 ### Handoff to team
 
-- [x] Share the migration/seed command.
+- [x] Share the migration command; no seed command is available after demo-data cleanup.
 - [x] Share the auth and role-guard usage example.
 - [x] Share the final booking/provider status enums.
 - [x] Share the API error format.
@@ -75,7 +75,7 @@ Prepare the API so the other two developers can build feature modules against a 
 
 - Prisma client generation, migration, and seed pass through the regional pooler connection.
 - A local `DATABASE_URL` is configured in the ignored API `.env` file.
-- Development seed creates `admin@swatstay.local` with password `ChangeMe123!`; change or remove this account before shared or staging use.
+- Demo records and the development seed script were removed on 17 Sep 2026. Create real accounts through signup or an approved deployment process.
 
 ---
 
