@@ -28,7 +28,7 @@ This is the shared task board for the first backend milestone. Update the status
 
 **Title:** Set up NestJS backend foundation, database schema, and access control  
 **Priority:** High  
-**Status:** `[~]` In progress  
+**Status:** `[x]` Complete  
 **Owner:** Project lead
 
 ### Goal
@@ -39,20 +39,20 @@ Prepare the API so the other two developers can build feature modules against a 
 
 - [x] Add NestJS configuration loading and environment placeholders.
 - [ ] Add `.env.example` without real secrets.
-- [ ] Add Prisma and configure Supabase PostgreSQL connection.
-- [ ] Convert the required first-sprint entities from `docs/DatabaseSchema.md` into Prisma models and migrations:
-  - [ ] Users and roles
-  - [ ] Tourist profiles
-  - [ ] Destinations
-  - [ ] Packages and package items
-  - [ ] Bookings and booking items
-  - [ ] Team members or support assignments
-  - [ ] Providers and provider services
-  - [ ] Booking events / audit timeline
-- [ ] Add seed data for development only.
+- [x] Add Prisma and configure Supabase PostgreSQL connection.
+- [x] Convert the required first-sprint entities from `docs/DatabaseSchema.md` into Prisma models and migrations:
+  - [x] Users and roles
+  - [x] Tourist profiles
+  - [x] Destinations
+  - [x] Packages and package items
+  - [x] Bookings and booking items
+  - [x] Team members or support assignments
+  - [x] Providers and provider services
+  - [x] Booking events / audit timeline
+- [x] Add seed data for development only.
 - [x] Add global request validation and CORS configuration for web, admin, and provider apps.
-- [x] Add shared JWT-ready authentication types, role decorator, and role guard primitive.
-- [x] Keep `/health` and add a database-not-connected readiness response.
+- [x] Add JWT authentication endpoints and global role-guard foundation for tourist, admin, support, and provider users.
+- [x] Keep `/health` and add a database readiness check.
 - [ ] Update API and database docs when field names differ from the planned contracts.
 
 ### Acceptance criteria
@@ -65,16 +65,17 @@ Prepare the API so the other two developers can build feature modules against a 
 
 ### Handoff to team
 
-- [ ] Share the migration/seed command.
-- [ ] Share the auth and role-guard usage example.
-- [ ] Share the final booking/provider status enums.
-- [ ] Share the API error format.
+- [x] Share the migration/seed command.
+- [x] Share the auth and role-guard usage example.
+- [x] Share the final booking/provider status enums.
+- [x] Share the API error format.
 
-**PR/branch:** `main, local foundation pass`  
+**PR/branch:** `main, backend foundation complete`  
 **Notes/blockers:**
 
-- Prisma CLI/client versions are aligned and client generation passes.
-- A local `DATABASE_URL` is now configured in the ignored API `.env` file.
+- Prisma client generation, migration, and seed pass through the regional pooler connection.
+- A local `DATABASE_URL` is configured in the ignored API `.env` file.
+- Development seed creates `admin@swatstay.local` with password `ChangeMe123!`; change or remove this account before shared or staging use.
 
 ---
 
@@ -220,3 +221,4 @@ Turn a persisted booking request into a controlled operational workflow for the 
 | 17 Sep 2026 | Project lead | Prisma 7 client generation, API typecheck, and API build pass. Direct migration is blocked by the database host connection; no migration was created. | Verify the regional pooler connection, then rerun migration before adding seed data. |
 | 17 Sep 2026 | Project lead | Direct Supabase hostname DNS lookup failed from the development machine; Prisma migration did not change the database. | Obtain a resolvable Supabase direct or pooler connection string, then rerun the migration. |
 | 17 Sep 2026 | Project lead | Regional Supabase pooler connection works. Prisma client generation passed and `backend_foundation` migration was applied successfully. | Add development seed data, then continue with the auth/database service modules. |
+| 17 Sep 2026 | Project lead | Prisma service, seed data, JWT signup/login/me, bearer guard, global role guard, database readiness, and runtime health checks completed. | Handoff stable foundation to Asim and Ahmed. |
