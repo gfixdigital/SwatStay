@@ -73,6 +73,25 @@ Rate limits must be enforced by the API gateway and NestJS guards, never by fron
 
 The API should return HTTP `429` with a safe retry-after value. CAPTCHA or equivalent bot verification must be verified on the server for public forms after the provider is selected. Frontend checkboxes are only a visual preview and provide no protection.
 
+### Public intake and support endpoints
+
+The first backend implementation includes these routes. Public intake routes require validated Terms and Privacy consent and are rate limited.
+
+```txt
+POST /contact
+POST /custom-trips/request
+POST /providers/register
+POST /support/tickets              protected
+GET  /support/tickets              protected
+POST /support/tickets/:id/messages protected
+GET  /users/me                     protected
+PATCH /users/me                    protected
+GET  /privacy/consents             protected
+POST /privacy/data-deletion        protected
+```
+
+Contact, custom-trip, and provider registration responses return a frontend-safe reference and status. Email, WhatsApp, file storage, realtime chat, and admin review notifications remain pending backend work.
+
 ## 3. Standard Response Shape
 
 Success:

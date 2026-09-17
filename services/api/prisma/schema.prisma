@@ -94,6 +94,11 @@ model User {
   sessions          AuthSession[]
   consentRecords    ConsentRecord[]
   deletionRequests  DataDeletionRequest[]
+  supportTickets    SupportTicket[]
+  auditLogs         AuditLog[]
+  customTripRequests CustomTripRequest[]
+  providerRegistrations ProviderRegistration[]
+  supportMessages   SupportMessage[]
 }
 
 model TouristProfile {
@@ -245,4 +250,97 @@ model DataDeletionRequest {
   createdAt  DateTime @default(now())
   resolvedAt DateTime?
   user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model ContactSubmission {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String?
+  message   String
+  source    String   @default("website")
+  status    String   @default("NEW")
+  consent   Boolean
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CustomTripRequest {
+  id            String   @id @default(uuid())
+  userId        String?
+  name          String
+  email         String
+  phone         String
+  destination   String
+  travelStart   DateTime?
+  travelEnd     DateTime?
+  travelers     Int
+  pickupCity    String
+  accommodation String?
+  interests     String?
+  budget        String?
+  notes         String?
+  status        String   @default("NEW")
+  consent       Boolean
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model ProviderRegistration {
+  id              String   @id @default(uuid())
+  userId          String?
+  businessName    String
+  ownerName       String
+  email           String
+  phone           String
+  serviceCategory ServiceType
+  location        String
+  address         String?
+  capacity        Int?
+  description     String?
+  status          String   @default("NEW")
+  consent         Boolean
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model SupportTicket {
+  id          String           @id @default(uuid())
+  userId      String?
+  bookingId   String?
+  guestEmail  String?
+  subject     String
+  issueType   String
+  priority    String           @default("NORMAL")
+  status      String           @default("OPEN")
+  assignedTo  String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  user        User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  messages    SupportMessage[]
+}
+
+model SupportMessage {
+  id         String        @id @default(uuid())
+  ticketId   String
+  authorId   String?
+  body       String
+  audience   String        @default("TRAVELER")
+  createdAt  DateTime      @default(now())
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author     User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
 }

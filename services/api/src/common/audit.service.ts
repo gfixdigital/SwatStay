@@ -9,4 +9,8 @@ export class AuditService {
   recordBookingEvent(bookingId: string, eventType: string, actorId?: string, payload?: Prisma.InputJsonValue) {
     return this.prisma.bookingEvent.create({ data: { bookingId, eventType, actorId, payload } });
   }
+
+  record(action: string, entityType: string, entityId?: string, actorId?: string, metadata?: Prisma.InputJsonValue) {
+    return this.prisma.auditLog.create({ data: { action, entityType, entityId, actorId, metadata } });
+  }
 }

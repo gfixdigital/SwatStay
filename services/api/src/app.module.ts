@@ -8,16 +8,17 @@ import { AuthModule } from "./auth/auth.module";
 import { RolesGuard } from "./auth/roles.guard";
 import { UsersModule } from "./users/users.module";
 import { PrivacyModule } from "./privacy/privacy.module";
-import { AuditService } from "./common/audit.service";
+import { CommonModule } from "./common/common.module";
 import { RequestIdMiddleware } from "./common/request-id.middleware";
+import { IntakeModule } from "./intake/intake.module";
+import { SupportModule } from "./support/support.module";
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]), DatabaseModule, AuthModule, UsersModule, PrivacyModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]), CommonModule, DatabaseModule, AuthModule, UsersModule, PrivacyModule, IntakeModule, SupportModule],
   controllers: [HealthController],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
-    AuditService,
   ],
 })
 export class AppModule implements NestModule {

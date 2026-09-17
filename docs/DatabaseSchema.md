@@ -11,6 +11,11 @@ The following fields are now represented in the traveler/admin interfaces and mu
 - `support_messages`: ticket ID, author ID, audience (`traveler` or `internal`), message body, attachments, delivered/read timestamps.
 - `support_transfers`: ticket ID, previous assignee, next assignee, actor, reason, transferred at.
 - `booking_events`: booking ID, event type, actor, payload, created at for the traveler timeline and admin audit history.
+- `contact_submissions`: public contact form details, consent, status, and timestamps.
+- `custom_trip_requests`: traveler preferences, dates, pickup city, budget, consent, status, and timestamps.
+- `provider_registrations`: provider business details, service category, consent, review status, and timestamps.
+- `support_tickets` and `support_messages`: authenticated support conversations, issue type, status, audience, and timestamps.
+- `audit_logs`: actor, action, entity, metadata, and timestamp for operational intake events.
 
 The API must authorize every action and publish only traveler-visible messages/events to the traveler dashboard. Internal notes, finance evidence, provider commission, and payout information must never be exposed to travelers.
 
