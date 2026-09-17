@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { PaymentStatus, PayoutStatus, UserRole } from "../common/enums";
+import { PaymentStatus, PayoutStatus } from "../common/enums";
 import { PrismaService } from "../database/prisma.service";
 import { AuditService } from "../common/audit.service";
 import { PaymentProofDto } from "./dto/payment-proof.dto";
@@ -36,8 +36,14 @@ export class FinanceService {
     const [booking, provider] = await Promise.all([this.prisma.booking.findUnique({ where: { id: input.bookingId } }), this.prisma.provider.findUnique({ where: { id: input.providerId } })]);
     if (!booking) throw new NotFoundException("Booking not found");
     if (!provider) throw new NotFoundException("Provider not found");
+    if (input.bookingItemId) {
+      const item = await this.prisma.bookingItem.findUnique({ where: { id: input.bookingItemId } });
+      if (!item || item.bookingId !== input.bookingId || item.providerId !== input.providerId) throw new BadRequestException("Booking item does not belong to this booking and provider");
+    }
+    const existing = await this.prisma.commission.findFirst({ where: { bookingId: input.bookingId, bookingItemId: input.bookingItemId ?? null, providerId: input.providerId } });
+    if (existing) throw new BadRequestException("A commission already exists for this booking service");
     const commissionAmount = Math.round(input.grossAmount * (input.rate / 100));
-    const commission = await this.prisma.commission.create({ data: { bookingId: input.bookingId, bookingItemId: input.bookingItemId, providerId: input.providerId, rate: input.rate, grossAmount: input.grossAmount, commissionAmount, providerAmount: input.grossAmount - commissionAmount, payout: { create: { providerId: input.providerId, amount: input.grossAmount - commissionAmount } } }, include: { payout: true, provider: true } });
+    const commission = await this.prisma.$transaction(async (tx) => tx.commission.create({ data: { bookingId: input.bookingId, bookingItemId: input.bookingItemId, providerId: input.providerId, rate: input.rate, grossAmount: input.grossAmount, commissionAmount, providerAmount: input.grossAmount - commissionAmount, payout: { create: { providerId: input.providerId, amount: input.grossAmount - commissionAmount } } }, include: { payout: true, provider: true } }));
     await this.audit.record("COMMISSION_CREATED", "Commission", commission.id, actorId, { bookingId: input.bookingId, providerId: input.providerId, commissionAmount, providerAmount: input.grossAmount - commissionAmount });
     return commission;
   }

@@ -592,31 +592,17 @@ Request:
 
 ## 11. Payment Endpoints
 
-### POST /payments/proof
+### POST /bookings/:bookingId/payment-proof
 
-Protected or public with booking token.
-
-Purpose: tourist uploads manual payment proof.
-
-Request:
-
-```json
-{
-  "bookingId": "uuid",
-  "amount": 15000,
-  "paymentMethod": "BANK_TRANSFER",
-  "referenceNumber": "TXN-12345",
-  "proofFileId": "uuid"
-}
-```
+Protected: booking owner. This first backend foundation accepts a payment method, amount, optional transaction reference, optional proof URL placeholder, and notes. Real file upload is a later storage task.
 
 ### GET /admin/payments
 
 Protected: `ADMIN`, `FINANCE`.
 
-### PATCH /admin/payments/:id/verify
+### PATCH /admin/payments/:id/review
 
-Protected: `ADMIN`, `FINANCE`.
+Protected: `ADMIN`, `FINANCE`. Accepts `VERIFIED` or `REJECTED` plus an optional review note.
 
 ## 12. File Endpoints
 
