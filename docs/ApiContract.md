@@ -840,3 +840,33 @@ Creates a service exception instead of completing the handoff. Required fields: 
 Protected: assigned provider user.
 
 Returns only the traveler and service fields required for that provider's assignment.
+
+## Finance foundation
+
+### POST /bookings/:bookingId/payment-proof
+
+Protected: booking owner. Accepts amount, method, optional transaction reference, proof URL placeholder, and notes. Creates a `PROOF_SUBMITTED` payment record and updates the booking payment status.
+
+### GET /admin/payments
+
+Protected: `ADMIN`, `FINANCE`. Lists payment submissions for review.
+
+### PATCH /admin/payments/:paymentId/review
+
+Protected: `ADMIN`, `FINANCE`. Accepts `VERIFIED` or `REJECTED` plus an optional review note and records the reviewer audit event.
+
+### POST /admin/finance/commissions
+
+Protected: `ADMIN`, `FINANCE`. Creates a per-service commission from gross amount and rate, calculates provider settlement, and creates a pending payout.
+
+### GET /admin/finance/bookings/:bookingId
+
+Protected: `ADMIN`, `FINANCE`. Returns payment, commission, provider, and payout records for one booking.
+
+### GET /admin/payouts and PATCH /admin/payouts/:payoutId/status
+
+Protected: `ADMIN`, `FINANCE`. Payout transitions are `PENDING -> APPROVED -> PROCESSING -> PAID`; failed transfers can move `FAILED -> PROCESSING`. Invalid transitions are rejected.
+
+### GET /provider/finance
+
+Protected: `PROVIDER`. Returns only the authenticated provider's commission and payout records.

@@ -19,4 +19,15 @@ The Commissions page records booking reference, provider, service type, gross se
 
 Payout is the amount actually paid to the provider after the service and settlement conditions are met. Finance records the payout method, transfer reference, confirmation note, amount paid, remaining balance, and status.
 
-Current UI pages are browser-only previews. The backend must later calculate settlements from selected provider arrangements, prevent duplicate payouts, validate roles, store proof, and create immutable finance audit entries.
+## API foundation now available
+
+The API now exposes the first finance foundation under `/api/v1`:
+
+- `POST /bookings/:id/payment-proof` lets the owning tourist submit amount, method, reference, and a frontend-provided proof URL placeholder.
+- `GET /admin/payments` and `PATCH /admin/payments/:id/review` are restricted to `ADMIN` and `FINANCE` roles.
+- `POST /admin/finance/commissions` creates a per-service commission and its pending provider payout.
+- `GET /admin/finance/bookings/:id` and `GET /admin/payouts` provide finance views.
+- `PATCH /admin/payouts/:id/status` enforces `PENDING -> APPROVED -> PROCESSING -> PAID` with a failed-payment retry path through `FAILED -> PROCESSING`.
+- `GET /provider/finance` is restricted to the signed-in provider and returns only that provider's commissions and payouts.
+
+Every review, commission creation, and payout transition writes an audit log. File storage, payment gateway processing, tax handling, duplicate payout protection, and automated settlement remain later work.

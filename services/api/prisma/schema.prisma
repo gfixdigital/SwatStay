@@ -72,6 +72,14 @@ enum AssignmentStatus {
   CANCELLED
 }
 
+enum PayoutStatus {
+  PENDING
+  APPROVED
+  PROCESSING
+  PAID
+  FAILED
+}
+
 model User {
   id                String   @id @default(uuid())
   fullName          String
@@ -99,6 +107,9 @@ model User {
   customTripRequests CustomTripRequest[]
   providerRegistrations ProviderRegistration[]
   supportMessages   SupportMessage[]
+  paymentSubmissions Payment[] @relation("PaymentSubmitter")
+  paymentReviews    Payment[] @relation("PaymentReviewer")
+  payoutApprovals   Payout[] @relation("PayoutApprover")
 }
 
 model TouristProfile {
@@ -162,6 +173,8 @@ model Provider {
   updatedAt DateTime @updatedAt
   user User? @relation(fields: [userId], references: [id])
   bookingItems BookingItem[]
+  commissions Commission[]
+  payouts Payout[]
 }
 
 model Booking {
@@ -184,6 +197,8 @@ model Booking {
   items BookingItem[]
   teamAssignments BookingTeamAssignment[]
   events BookingEvent[]
+  payments Payment[]
+  commissions Commission[]
 }
 
 model BookingItem {
@@ -196,6 +211,7 @@ model BookingItem {
   commission Int?
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   provider Provider? @relation(fields: [providerId], references: [id])
+  commissions Commission[]
 }
 
 model BookingTeamAssignment {
@@ -343,4 +359,59 @@ model AuditLog {
   metadata   Json?
   createdAt  DateTime @default(now())
   actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+}
+
+model Payment {
+  id                   String        @id @default(uuid())
+  bookingId            String
+  submittedById        String?
+  amount               Int
+  currency             String        @default("PKR")
+  method               String
+  transactionReference String?
+  proofUrl             String?
+  status               PaymentStatus @default(PENDING)
+  reviewNote           String?
+  reviewedById         String?
+  submittedAt          DateTime      @default(now())
+  reviewedAt           DateTime?
+  booking              Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  submittedBy          User?         @relation("PaymentSubmitter", fields: [submittedById], references: [id], onDelete: SetNull)
+  reviewedBy           User?         @relation("PaymentReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+}
+
+model Commission {
+  id               String        @id @default(uuid())
+  bookingId        String
+  bookingItemId    String?
+  providerId       String
+  rate             Decimal       @db.Decimal(5, 2)
+  grossAmount      Int
+  commissionAmount Int
+  providerAmount   Int
+  currency         String        @default("PKR")
+  createdAt        DateTime      @default(now())
+  booking          Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingItem      BookingItem?  @relation(fields: [bookingItemId], references: [id], onDelete: SetNull)
+  provider         Provider      @relation(fields: [providerId], references: [id])
+  payout           Payout?
+}
+
+model Payout {
+  id           String       @id @default(uuid())
+  providerId   String
+  commissionId String       @unique
+  amount       Int
+  currency     String       @default("PKR")
+  method       String?
+  accountLabel String?
+  status       PayoutStatus @default(PENDING)
+  financeNote  String?
+  approvedById String?
+  paidAt       DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  provider     Provider     @relation(fields: [providerId], references: [id])
+  commission   Commission   @relation(fields: [commissionId], references: [id])
+  approvedBy   User?        @relation("PayoutApprover", fields: [approvedById], references: [id], onDelete: SetNull)
 }
