@@ -43,7 +43,7 @@ const navGroups: NavGroup[] = [
   ] },
   { id: "experience", label: "Customer experience", items: [
     { to: "/contact-inbox", label: "Contact inbox", icon: Mail, roles: ["Admin", "Operations", "Support"] },
-    { to: "/content", label: "Website content", icon: BookOpenText, roles: ["Admin", "Operations", "QA"] },
+    { to: "/content", label: "Site builder", icon: BookOpenText, roles: ["Admin", "Operations", "QA"] },
     { to: "/promotions", label: "Promotions", icon: RefreshCcw, roles: ["Admin", "Operations"] },
     { to: "/reviews", label: "Trip reviews", icon: BarChart3, roles: ["Admin", "Operations", "Support"] },
     { to: "/legal", label: "Legal content", icon: FileClock, roles: ["Admin", "Operations", "QA"] },

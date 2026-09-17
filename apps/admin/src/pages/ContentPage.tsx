@@ -1,4 +1,4 @@
-import { Edit3, Eye, Save, Search, Send } from "lucide-react";
+import { Edit3, Eye, Plus, Save, Search, Send } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { AdminModal } from "../components/AdminModal";
 import { AdminToast } from "../components/AdminToast";
@@ -8,11 +8,12 @@ import { PageHeader } from "../components/PageHeader";
 import { StatusBadge } from "../components/StatusBadge";
 import { contentSections as initialSections } from "../data/content";
 import type { ContentField, ContentSection } from "../types/admin";
+import { usePreviewState } from "../hooks/usePreviewState";
 
 type EditorMode = "edit" | "preview";
 
 export function ContentPage() {
-  const [sections, setSections] = useState(initialSections);
+  const [sections, setSections] = usePreviewState("swatstay.admin.content.preview", initialSections);
   const [search, setSearch] = useState("");
   const [area, setArea] = useState("All");
   const [status, setStatus] = useState("All");
@@ -21,6 +22,9 @@ export function ContentPage() {
   const [mode, setMode] = useState<EditorMode>("edit");
   const [publishPending, setPublishPending] = useState(false);
   const [toast, setToast] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newArea, setNewArea] = useState<ContentSection["area"]>("Global");
 
   const visible = useMemo(() => sections.filter((section) => {
     const query = search.toLowerCase();
@@ -57,14 +61,27 @@ export function ContentPage() {
     setToast(`${selected.title} published in frontend state.`);
   }
 
+  function createSection(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!newTitle.trim()) return;
+    const id = `content-custom-${Date.now()}`;
+    const section: ContentSection = { id, title: newTitle.trim(), area: newArea, description: "Custom site-builder section. Add fields and connect it to a public component when the content API is available.", fields: [{ key: "content", label: "Content", type: "textarea", value: "", required: false }], status: "Draft", updatedAt: "Just now", updatedBy: "Current admin", version: 1 };
+    setSections((current) => [section, ...current]);
+    setNewTitle("");
+    setNewArea("Global");
+    setCreateOpen(false);
+    setToast("New content section created as a draft.");
+    openSection(section, "edit");
+  }
+
   const hasMissingRequired = draftFields.some((field) => field.required && !field.value.trim());
 
   return <>
-    <PageHeader eyebrow="PUBLIC WEBSITE CONTENT" title="Website content" description="Edit, preview, save, and publish the public copy that will later be delivered through the content API."/>
+    <PageHeader eyebrow="PUBLIC WEBSITE CONTENT" title="Site builder" description="Manage public copy, calls to action, consent text, legal content, and page sections. Browser preview only until the content API is connected." actions={<button type="button" className="button-primary" onClick={() => setCreateOpen(true)}><Plus size={15}/> Add content section</button>}/>
 
     <section className="mb-4 grid gap-3 rounded-lg border border-border bg-white p-3 md:grid-cols-[1fr_220px_180px]">
       <label className="relative"><span className="sr-only">Search content</span><Search className="absolute left-3 top-2.5 text-stone" size={16}/><input className="field pl-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search page or content section"/></label>
-      <select className="field" value={area} onChange={(event) => setArea(event.target.value)} aria-label="Filter content area"><option>All</option><option>Homepage</option><option>Global</option><option>Help</option><option>Legal</option></select>
+      <select className="field" value={area} onChange={(event) => setArea(event.target.value)} aria-label="Filter content area"><option>All</option><option>Homepage</option><option>Packages</option><option>Destinations</option><option>Forms</option><option>Global</option><option>Help</option><option>Legal</option></select>
       <select className="field" value={status} onChange={(event) => setStatus(event.target.value)} aria-label="Filter publish status"><option>All</option><option>Published</option><option>Draft</option></select>
     </section>
 
@@ -82,6 +99,7 @@ export function ContentPage() {
     </AdminModal>
 
     <ConfirmDialog open={publishPending} title="Publish website content?" message={`Publish the current ${selected?.title ?? "content"} values to frontend state? The future API will create a version and update the public website.`} confirmLabel="Publish content" onConfirm={publish} onClose={() => setPublishPending(false)}/>
+    <AdminModal open={createOpen} onClose={() => setCreateOpen(false)} title="Add content section" description="Create a draft section for a new public website element. It remains browser-only until the content API is connected."><form onSubmit={createSection} className="grid gap-4"><label className="label">Section title<input required className="field mt-1.5" value={newTitle} onChange={(event) => setNewTitle(event.target.value)} placeholder="Example: Package listing empty state"/></label><label className="label">Website area<select className="field mt-1.5" value={newArea} onChange={(event) => setNewArea(event.target.value as ContentSection["area"])}><option>Homepage</option><option>Packages</option><option>Destinations</option><option>Forms</option><option>Global</option><option>Help</option><option>Legal</option></select></label><button className="button-primary">Create draft section</button></form></AdminModal>
     <AdminToast message={toast} onClose={() => setToast("")}/>
   </>;
 }

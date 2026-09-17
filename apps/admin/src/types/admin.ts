@@ -135,7 +135,7 @@ export type ContentField = {
 export type ContentSection = {
   id: string;
   title: string;
-  area: "Homepage" | "Help" | "Legal" | "Global";
+  area: "Homepage" | "Packages" | "Destinations" | "Forms" | "Help" | "Legal" | "Global";
   description: string;
   fields: ContentField[];
   status: "Published" | "Draft";

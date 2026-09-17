@@ -1,5 +1,9 @@
 # SwatStay Frontend Audit
 
+## Latest verification pass
+
+17 September 2026: web, admin, provider, and API TypeScript checks pass. Admin and provider production builds pass. The homepage package count is now plain factual text, and filtered admin booking rows export to CSV in the browser preview. The privacy/data-deletion route has route-specific metadata. The remaining frontend-only and backend-dependent items below still apply.
+
 Audit date: 15 September 2026
 
 Scope:

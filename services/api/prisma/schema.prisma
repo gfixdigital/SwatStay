@@ -1,0 +1,211 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  TOURIST
+  PROVIDER
+  ADMIN
+  OPERATIONS
+  SUPPORT
+  FINANCE
+  QA
+}
+
+enum Language {
+  EN
+  UR
+  ZH
+}
+
+enum ServiceType {
+  HOTEL
+  TRANSPORT
+  GUIDE
+  HIKING_GUIDE
+  RESTAURANT
+  PHOTOGRAPHY
+  ACTIVITY
+}
+
+enum ProviderStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum BookingStatus {
+  DRAFT
+  REQUEST_SUBMITTED
+  CALL_PENDING
+  TOURIST_CONFIRMED
+  PAYMENT_PENDING
+  ADVANCE_PAID
+  FULLY_PAID
+  PROVIDER_SELECTION
+  PROVIDER_PENDING
+  CONFIRMED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  REFUNDED
+  REQUIRES_ADMIN_ACTION
+}
+
+enum PaymentStatus {
+  PENDING
+  PROOF_SUBMITTED
+  VERIFIED
+  REJECTED
+  REFUNDED
+}
+
+enum AssignmentStatus {
+  PENDING_PROVIDER
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+model User {
+  id                String   @id @default(uuid())
+  fullName          String
+  email             String?  @unique
+  phone             String?  @unique
+  passwordHash      String?
+  role              UserRole
+  preferredLanguage Language @default(EN)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  touristProfile    TouristProfile?
+  providerProfile   Provider?
+  bookings          Booking[] @relation("TouristBookings")
+  assignments       BookingTeamAssignment[]
+  assignedBy        BookingTeamAssignment[] @relation("AssignedBy")
+  events            BookingEvent[]
+}
+
+model TouristProfile {
+  id String @id @default(uuid())
+  userId String @unique
+  country String?
+  whatsapp String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Destination {
+  id String @id @default(uuid())
+  name String
+  slug String @unique
+  description String?
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  packages Package[]
+}
+
+model Package {
+  id String @id @default(uuid())
+  destinationId String
+  name String
+  slug String @unique
+  summary String?
+  durationDays Int
+  basePrice Int
+  currency String @default("PKR")
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  destination Destination @relation(fields: [destinationId], references: [id])
+  items PackageItem[]
+  bookings Booking[]
+}
+
+model PackageItem {
+  id String @id @default(uuid())
+  packageId String
+  serviceType ServiceType
+  title String
+  description String?
+  package Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+}
+
+model Provider {
+  id String @id @default(uuid())
+  userId String? @unique
+  businessName String
+  ownerName String
+  phone String
+  serviceCategory ServiceType
+  location String
+  status ProviderStatus @default(PENDING_REVIEW)
+  defaultCommissionRate Decimal? @db.Decimal(5, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User? @relation(fields: [userId], references: [id])
+  bookingItems BookingItem[]
+}
+
+model Booking {
+  id String @id @default(uuid())
+  reference String @unique
+  touristId String
+  packageId String?
+  destination String
+  travelStart DateTime
+  travelEnd DateTime
+  travelersCount Int
+  pickupCity String
+  specialRequests String?
+  status BookingStatus @default(CALL_PENDING)
+  paymentStatus PaymentStatus @default(PENDING)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tourist User @relation("TouristBookings", fields: [touristId], references: [id])
+  package Package? @relation(fields: [packageId], references: [id])
+  items BookingItem[]
+  teamAssignments BookingTeamAssignment[]
+  events BookingEvent[]
+}
+
+model BookingItem {
+  id String @id @default(uuid())
+  bookingId String
+  providerId String?
+  serviceType ServiceType
+  status AssignmentStatus @default(PENDING_PROVIDER)
+  price Int?
+  commission Int?
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  provider Provider? @relation(fields: [providerId], references: [id])
+}
+
+model BookingTeamAssignment {
+  id String @id @default(uuid())
+  bookingId String
+  memberId String
+  assignedById String?
+  assignedAt DateTime @default(now())
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  member User @relation(fields: [memberId], references: [id])
+  assignedBy User? @relation("AssignedBy", fields: [assignedById], references: [id])
+}
+
+model BookingEvent {
+  id String @id @default(uuid())
+  bookingId String
+  actorId String?
+  eventType String
+  payload Json?
+  createdAt DateTime @default(now())
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  actor User? @relation(fields: [actorId], references: [id])
+}
