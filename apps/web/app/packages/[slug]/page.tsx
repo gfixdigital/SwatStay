@@ -12,16 +12,12 @@ import { PackageViewTracker } from "@/components/PackageViewTracker";
 import { PriceBreakdown } from "@/components/PriceBreakdown";
 import { InteractiveServiceBadges } from "@/components/InteractiveServiceBadges";
 import { PageEnter } from "@/components/Animated";
-import { getPackage, packages } from "@/data/packages";
+import { getPackage } from "@/lib/api";
 import type { PackageServiceDetail, Service, TourPackage } from "@/types/package";
-
-export function generateStaticParams() {
-  return packages.map((item) => ({ slug: item.slug }));
-}
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const item = getPackage(slug);
+  const item = await getPackage(slug);
   return {
     title: item ? `${item.title} | SwatStay` : "Swat Package | SwatStay",
     description: item ? `${item.description} Call-confirmed booking support across Swat Valley.` : "Compare call-confirmed Swat tour packages.",
@@ -31,7 +27,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function PackageDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const item = getPackage(slug);
+  const item = await getPackage(slug);
   if (!item) notFound();
 
   return <>
