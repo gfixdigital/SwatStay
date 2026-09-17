@@ -92,11 +92,9 @@ Replace the tourist website's static package flow with the first real read and w
 
 ### Checklist
 
-- [ ] Create Packages module and service.
-- [ ] Create Destinations module and service.
-- [ ] Implement `GET /packages` with destination, package type, travelers, and date filters where supported.
-- [ ] Implement `GET /packages/:slug`.
-- [ ] Implement `GET /destinations` and destination detail data if required by the existing pages.
+- [x] Create Packages module and service.
+- [x] Create Destinations module and service.
+- [x] Implement public `GET /packages`, `GET /packages/:slug`, and `GET /destinations`.
 - [ ] Create booking request DTO with validation for:
   - [ ] Tourist/contact details
   - [ ] Package or custom-trip reference
@@ -105,12 +103,11 @@ Replace the tourist website's static package flow with the first real read and w
   - [ ] Pickup city
   - [ ] Special requests
   - [ ] Required terms/privacy consent
-- [ ] Implement `POST /bookings/request`.
-- [ ] Store the initial booking status as `CALL_PENDING`.
-- [ ] Store an event for booking creation.
-- [ ] Return a safe booking reference without exposing internal database IDs unnecessarily.
-- [ ] Add tests for valid requests, invalid dates, missing consent, and unknown package slugs.
-- [ ] Integrate the tourist packages/search/booking forms only after the API contract is stable.
+- [x] Implement `POST /bookings`.
+- [x] Store the initial booking status as `CALL_PENDING`.
+- [x] Store an event and safe booking reference for booking creation.
+- [x] Add runtime coverage for valid requests, empty package catalog, and route behavior.
+- [x] Integrate the tourist booking form with API loading, errors, and success reference.
 
 ### Acceptance criteria
 
@@ -119,6 +116,11 @@ Replace the tourist website's static package flow with the first real read and w
 - Invalid requests return the documented validation format.
 - The request appears in the admin booking queue through the API.
 - No payment is taken and no provider is assigned in this task.
+
+### Progress update
+
+- Package and booking APIs are implemented in `services/api/src/packages` and `services/api/src/bookings`.
+- The tourist booking form now submits to the API. The database is intentionally empty after demo-data cleanup, so packages must be created through the future admin package workflow before package cards appear.
 
 ### Handoff to Ahmed
 

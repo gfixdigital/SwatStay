@@ -299,7 +299,7 @@ Purpose: update package.
 
 ## 8. Booking Endpoints
 
-### POST /bookings/request
+### POST /bookings
 
 Public or tourist protected.
 
@@ -744,7 +744,7 @@ Connect APIs in this order:
 
 1. `GET /packages`
 2. `GET /packages/:slug`
-3. `POST /bookings/request`
+3. `POST /bookings`
 4. `POST /providers/register`
 5. `GET /admin/bookings`
 6. `PATCH /admin/bookings/:id/call-confirm`

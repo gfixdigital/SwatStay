@@ -12,9 +12,11 @@ import { RequestIdMiddleware } from "./common/request-id.middleware";
 import { IntakeModule } from "./intake/intake.module";
 import { SupportModule } from "./support/support.module";
 import { FinanceModule } from "./finance/finance.module";
+import { PackagesModule } from "./packages/packages.module";
+import { BookingsModule } from "./bookings/bookings.module";
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]), CommonModule, DatabaseModule, AuthModule, UsersModule, PrivacyModule, IntakeModule, SupportModule, FinanceModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]), CommonModule, DatabaseModule, AuthModule, UsersModule, PrivacyModule, IntakeModule, SupportModule, FinanceModule, PackagesModule, BookingsModule],
   controllers: [HealthController],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

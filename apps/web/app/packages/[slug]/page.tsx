@@ -110,7 +110,7 @@ export default async function PackageDetailPage({ params }: { params: Promise<{ 
               </section>
             </div>
 
-            <PackageBookingModal packageTitle={item.title} packageImage={item.image} price={item.price} duration={item.duration}/>
+            <PackageBookingModal packageTitle={item.title} packageImage={item.image} price={item.price} duration={item.duration} packageSlug={item.slug} destination={item.destination}/>
           </div>
         </section>
       </main>
