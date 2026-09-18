@@ -297,6 +297,26 @@ Protected: `ADMIN`, `OPERATIONS`.
 
 Purpose: update package.
 
+### GET /admin/destinations
+
+Protected: `ADMIN`, `OPERATIONS`. Returns the destination catalog for package editors.
+
+### POST /admin/destinations
+
+Protected: `ADMIN`, `OPERATIONS`. Creates a destination with a unique lowercase slug.
+
+### GET /admin/packages
+
+Protected: `ADMIN`, `OPERATIONS`. Returns active and inactive packages with destination and included service items.
+
+### POST /admin/packages
+
+Protected: `ADMIN`, `OPERATIONS`. Creates a package with destination, pricing, package type, tier, optional media/SEO/itinerary metadata, and service items.
+
+### PATCH /admin/packages/:id/active
+
+Protected: `ADMIN`, `OPERATIONS`. Activates or archives a package without deleting its record.
+
 ## 8. Booking Endpoints
 
 ### POST /bookings

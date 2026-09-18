@@ -139,9 +139,18 @@ model Package {
   name String
   slug String @unique
   summary String?
+  packageType String @default("Private")
+  tier String @default("Standard")
+  route String?
   durationDays Int
   basePrice Int
   currency String @default("PKR")
+  imageUrl String?
+  gallery Json?
+  itinerary Json?
+  cancellationSummary String?
+  seoTitle String?
+  seoDescription String?
   isActive Boolean @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

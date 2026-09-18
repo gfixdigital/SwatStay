@@ -664,6 +664,10 @@ Scan results: `ACCEPTED`, `ALREADY_COMPLETED`, `EXPIRED`, `REVOKED`, `WRONG_PROV
 
 The tourist can see one trip QR. The API resolves the scanning provider account to its assigned `ServiceVoucherItem`, so hotel, transport, guide, restaurant, and activity handoffs remain separate without asking the tourist to manage multiple codes.
 
+## Package catalog fields implemented in the backend
+
+The `Package` record now also stores `packageType`, `tier`, `route`, `imageUrl`, `gallery`, `itinerary`, `cancellationSummary`, `seoTitle`, and `seoDescription`. `PackageItem` stores the included service type, title, and description. Package catalog changes are restricted to admin and operations roles and are audit logged.
+
 Provider delivery must be service-scoped. It may include booking reference, tourist display name, party size, service schedule, pickup or arrival location, language, and service-specific notes. It must exclude CNIC, passport, payment proof, unrelated provider assignments, and internal admin notes.
 
 The QR payload should contain only a short signed voucher reference, never CNIC, passport, phone, or other sensitive data. Provider scanning should be authorized by provider account and should create an auditable handoff event. The tourist dashboard can then receive status changes through a realtime channel and show hotel check-in, transport pickup, guide arrival, meal completion, and issue resolution without trusting client-side status changes.
