@@ -2,9 +2,10 @@ import { BadRequestException, Injectable, NotFoundException } from "@nestjs/comm
 import { randomBytes } from "node:crypto";
 import { PrismaService } from "../database/prisma.service";
 import { AuditService } from "../common/audit.service";
-import { BookingStatus, Language, PaymentStatus, UserRole } from "../common/enums";
+import { AssignmentStatus, BookingStatus, Language, PaymentStatus, ServiceType, UserRole } from "../common/enums";
 import { AssignBookingDto } from "./dto/assign-booking.dto";
 import { CreateBookingDto } from "./dto/create-booking.dto";
+import { ProviderAssignmentDto } from "./dto/provider-assignment.dto";
 
 @Injectable()
 export class BookingsService {
@@ -83,9 +84,55 @@ export class BookingsService {
     return this.adminDetail(id);
   }
 
+  async providerSuggestions(id: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id },
+      include: { items: { include: { provider: true } }, package: { include: { items: true } } },
+    });
+    if (!booking) throw new NotFoundException("Booking not found");
+    const serviceTypes = [...new Set((booking.items.length ? booking.items.map((item) => item.serviceType) : booking.package?.items.map((item) => item.serviceType) ?? [ServiceType.HOTEL, ServiceType.TRANSPORT]))];
+    const providers = await this.prisma.provider.findMany({ where: { status: "APPROVED", serviceCategory: { in: serviceTypes } }, orderBy: [{ serviceCategory: "asc" }, { businessName: "asc" }] });
+    return serviceTypes.map((serviceType) => ({
+      serviceType,
+      selectedProviderId: booking.items.find((item) => item.serviceType === serviceType)?.providerId ?? null,
+      providers: providers.filter((provider) => provider.serviceCategory === serviceType).map((provider) => ({ id: provider.id, name: provider.businessName, serviceType: provider.serviceCategory, location: provider.location, phone: provider.phone, commissionRate: provider.defaultCommissionRate ? Number(provider.defaultCommissionRate) : null, status: provider.status })),
+    }));
+  }
+
+  async assignProvider(actorId: string, id: string, input: ProviderAssignmentDto) {
+    const booking = await this.prisma.booking.findUnique({ where: { id }, include: { items: true } });
+    if (!booking) throw new NotFoundException("Booking not found");
+    if (booking.paymentStatus !== PaymentStatus.VERIFIED) throw new BadRequestException("Payment must be verified before assigning providers");
+    if (![BookingStatus.PROVIDER_SELECTION, BookingStatus.PROVIDER_PENDING].includes(booking.status as BookingStatus)) throw new BadRequestException("Booking is not in the provider assignment step");
+    const provider = await this.prisma.provider.findFirst({ where: { id: input.providerId, status: "APPROVED", serviceCategory: input.serviceType } });
+    if (!provider) throw new BadRequestException("Only an approved provider matching this service type can be assigned");
+    const existing = booking.items.find((item) => item.serviceType === input.serviceType);
+    const item = existing
+      ? await this.prisma.bookingItem.update({ where: { id: existing.id }, data: { providerId: provider.id, status: AssignmentStatus.ACCEPTED, price: input.price, commission: input.commission } })
+      : await this.prisma.bookingItem.create({ data: { bookingId: id, providerId: provider.id, serviceType: input.serviceType, status: AssignmentStatus.ACCEPTED, price: input.price, commission: input.commission } });
+    await this.audit.recordBookingEvent(id, "BOOKING_PROVIDER_ASSIGNED", actorId, { bookingItemId: item.id, providerId: provider.id, providerName: provider.businessName, serviceType: input.serviceType, note: input.note ?? null });
+    await this.audit.record("BOOKING_PROVIDER_ASSIGNED", "Booking", id, actorId, { providerId: provider.id, serviceType: input.serviceType });
+    return this.adminDetail(id);
+  }
+
+  async confirmProviderAssignments(actorId: string, id: string) {
+    const booking = await this.prisma.booking.findUnique({ where: { id }, include: { items: true, package: { include: { items: true } } } });
+    if (!booking) throw new NotFoundException("Booking not found");
+    if (booking.paymentStatus !== PaymentStatus.VERIFIED) throw new BadRequestException("Payment must be verified before confirming providers");
+    const required = booking.items.length ? booking.items.map((item) => item.serviceType) : booking.package?.items.map((item) => item.serviceType) ?? [ServiceType.HOTEL, ServiceType.TRANSPORT];
+    const assignedTypes = new Set(booking.items.filter((item) => item.providerId && item.status === AssignmentStatus.ACCEPTED).map((item) => item.serviceType));
+    const missing = required.filter((serviceType) => !assignedTypes.has(serviceType));
+    if (missing.length) throw new BadRequestException(`Assign providers for: ${missing.join(", ")}`);
+    await this.prisma.booking.update({ where: { id }, data: { status: BookingStatus.PROVIDER_PENDING } });
+    await this.audit.recordBookingEvent(id, "BOOKING_PROVIDER_ASSIGNMENT_CONFIRMED", actorId, { serviceTypes: required });
+    await this.audit.record("BOOKING_PROVIDER_ASSIGNMENT_CONFIRMED", "Booking", id, actorId, { serviceTypes: required });
+    return this.adminDetail(id);
+  }
+
   private adminInclude() {
     return {
       package: { select: { name: true, slug: true, basePrice: true, currency: true } },
+      items: { include: { provider: { select: { id: true, businessName: true, serviceCategory: true, location: true } } }, orderBy: { serviceType: "asc" as const } },
       tourist: { select: { fullName: true, email: true, phone: true, preferredLanguage: true } },
       payments: { orderBy: { submittedAt: "desc" as const } },
       teamAssignments: { include: { member: { select: { id: true, fullName: true, role: true } }, assignedBy: { select: { fullName: true } } }, orderBy: { assignedAt: "asc" as const } },
@@ -98,7 +145,7 @@ export class BookingsService {
     const notes = (booking.events ?? []).filter((event: any) => event.eventType === "BOOKING_NOTE_ADDED").map((event: any) => ({ id: event.id, note: event.payload?.note ?? "", actor: event.actor?.fullName ?? "Team member", createdAt: event.createdAt }));
     const amountPaid = (booking.payments ?? []).filter((payment: any) => payment.status !== PaymentStatus.REJECTED && payment.status !== PaymentStatus.REFUNDED).reduce((total: number, payment: any) => total + payment.amount, 0);
     const latestPayment = booking.payments?.[0];
-    return { id: booking.id, reference: booking.reference, tourist: booking.tourist, package: booking.package, destination: booking.destination, travelStart: booking.travelStart, travelEnd: booking.travelEnd, travelersCount: booking.travelersCount, pickupCity: booking.pickupCity, specialRequests: booking.specialRequests, status: booking.status, paymentStatus: booking.paymentStatus, totalAmount: booking.package?.basePrice ?? 0, amountPaid, paymentMethod: latestPayment?.method ?? null, assignedMember: latestAssignment?.member ?? null, assignmentHistory: booking.teamAssignments ?? [], notes, events: booking.events ?? [], createdAt: booking.createdAt, updatedAt: booking.updatedAt };
+    return { id: booking.id, reference: booking.reference, tourist: booking.tourist, package: booking.package, destination: booking.destination, travelStart: booking.travelStart, travelEnd: booking.travelEnd, travelersCount: booking.travelersCount, pickupCity: booking.pickupCity, specialRequests: booking.specialRequests, status: booking.status, paymentStatus: booking.paymentStatus, totalAmount: booking.package?.basePrice ?? 0, amountPaid, paymentMethod: latestPayment?.method ?? null, assignedMember: latestAssignment?.member ?? null, assignmentHistory: booking.teamAssignments ?? [], providerArrangements: (booking.items ?? []).filter((item: any) => item.provider).map((item: any) => ({ serviceType: item.serviceType, providerId: item.provider.id, providerName: item.provider.businessName, status: item.status === AssignmentStatus.ACCEPTED ? "Selected" : item.status, price: item.price, commission: item.commission })), notes, events: booking.events ?? [], createdAt: booking.createdAt, updatedAt: booking.updatedAt };
   }
 
   private allowedStatusChange(from: BookingStatus, to: BookingStatus) {
