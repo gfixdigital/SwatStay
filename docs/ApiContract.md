@@ -327,6 +327,16 @@ Protected: `ADMIN`, `OPERATIONS`. Creates a package with destination, pricing, p
 
 Protected: `ADMIN`, `OPERATIONS`. Activates or archives a package without deleting its record.
 
+### Admin booking workflow
+
+`GET /admin/bookings` and `GET /admin/bookings/:id` are protected for `ADMIN`, `OPERATIONS`, and `SUPPORT`. They return booking details, package pricing, payment totals, current team assignment, notes, and booking events.
+
+`GET /admin/team-members` returns active admin, operations, and support users who can own booking follow-up.
+
+`PATCH /admin/bookings/:id/status` accepts a `BookingStatus` value and enforces the workflow sequence. `PATCH /admin/bookings/:id/payment-status` accepts a `PaymentStatus` value and is restricted to admin, finance, and operations roles.
+
+`PATCH /admin/bookings/:id/assignment` accepts `{ "memberId": "uuid", "reason": "..." }`. Only active admin, operations, or support users can be assigned. `POST /admin/bookings/:id/notes` accepts `{ "note": "..." }`. Status changes, assignments, and notes create booking events and audit records.
+
 ## 8. Booking Endpoints
 
 ### POST /bookings

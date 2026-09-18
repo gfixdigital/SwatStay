@@ -17,14 +17,14 @@ import { EmptyState } from "../components/EmptyState";
 import { BookingWorkflow } from "../components/BookingWorkflow";
 import { PaymentBadge } from "../components/PaymentBadge";
 import { StatusBadge } from "../components/StatusBadge";
-import { formatPkr, teamMembers } from "../data/adminData";
+import { formatPkr } from "../data/adminData";
 import { useBookingsPreview } from "../hooks/useBookingsPreview";
 import { workflowBlockReason } from "../lib/bookingWorkflow";
 import type { Booking, BookingAssignmentLog, BookingStatus, PaymentStatus } from "../types/admin";
 
 export function BookingDetailPage() {
   const { id } = useParams();
-  const { bookings, updateBooking } = useBookingsPreview();
+  const { bookings, updateBooking, assignBooking, teamMembers } = useBookingsPreview();
   const booking = bookings.find((item) => item.id === id);
   const [status, setStatus] = useState<BookingStatus>(
     booking?.status ?? "Call pending",
@@ -83,6 +83,12 @@ export function BookingDetailPage() {
       assignedAt: new Intl.DateTimeFormat("en-PK", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(new Date()),
     };
     const nextHistory = [...assignmentHistory, entry];
+    const member = teamMembers.find((entry) => entry.fullName === assignedMember);
+    if (!member) {
+      setActionMessage("Select an active team member loaded from the server.");
+      return;
+    }
+    assignBooking(booking!.id, member.id, assignmentReason.trim());
     updateBooking(booking!.id, { assignedSupportMember: assignedMember, assignmentHistory: nextHistory });
     setAssignmentHistory(nextHistory);
     setAssignmentReason("");
@@ -252,7 +258,7 @@ export function BookingDetailPage() {
               <label className="label">Assigned member
                 <select className="field mt-1.5" value={assignedMember} onChange={(event) => setAssignedMember(event.target.value)}>
                   <option value="Unassigned">Unassigned</option>
-                  {teamMembers.map((member) => <option key={member.id} value={member.name}>{member.name} · {member.role}</option>)}
+                  {teamMembers.map((member) => <option key={member.id} value={member.fullName}>{member.fullName} · {member.role}</option>)}
                 </select>
               </label>
               <label className="label">Assignment reason
