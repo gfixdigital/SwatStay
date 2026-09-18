@@ -8,6 +8,7 @@ import { success } from "../common/api-response";
 import { CatalogService } from "./catalog.service";
 import { CreateDestinationDto } from "./dto/create-destination.dto";
 import { CreatePackageDto } from "./dto/create-package.dto";
+import { ProviderStatus } from "@prisma/client";
 
 type RequestWithUser = { user: AuthenticatedUser };
 const catalogRoles = [UserRole.ADMIN, UserRole.OPERATIONS];
@@ -27,4 +28,6 @@ export class CatalogController {
   @Patch("packages/:id/active") async setActive(@Req() req: RequestWithUser, @Param("id") id: string, @Body("isActive") isActive: boolean) { return success(await this.catalog.setActive(req.user.id, id, isActive), "Package status updated"); }
   @Get("providers/:id/media") async providerMedia(@Param("id") id: string) { return success(await this.catalog.getProviderMedia(id), "Provider media fetched successfully"); }
   @Patch("providers/:id/media") async updateProviderMedia(@Req() req: RequestWithUser, @Param("id") id: string, @Body() input: { coverImage?: string | null; gallery?: string[]; documents?: string[] }) { return success(await this.catalog.updateProviderMedia(req.user.id, id, input), "Provider media updated"); }
+  @Get("providers") async providers() { return success(await this.catalog.listProviders(), "Admin providers fetched successfully"); }
+  @Patch("providers/:id/status") async providerStatus(@Req() req: RequestWithUser, @Param("id") id: string, @Body("status") status: ProviderStatus) { return success(await this.catalog.updateProviderStatus(req.user.id, id, status), "Provider status updated"); }
 }

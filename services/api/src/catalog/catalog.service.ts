@@ -5,6 +5,7 @@ import { AuditService } from "../common/audit.service";
 import { CreateDestinationDto } from "./dto/create-destination.dto";
 import { CreatePackageDto } from "./dto/create-package.dto";
 import { SupabaseStorageService } from "../storage/supabase-storage.service";
+import { ProviderStatus } from "@prisma/client";
 
 @Injectable()
 export class CatalogService {
@@ -31,6 +32,10 @@ export class CatalogService {
   private normalizeProviderMedia(value: unknown) { const media = value && typeof value === "object" ? value as { coverImage?: unknown; gallery?: unknown; documents?: unknown } : {}; return { coverImage: typeof media.coverImage === "string" ? media.coverImage : null, gallery: Array.isArray(media.gallery) ? media.gallery.filter((path): path is string => typeof path === "string") : [], documents: Array.isArray(media.documents) ? media.documents.filter((path): path is string => typeof path === "string") : [] }; }
 
   listDestinations() { return this.prisma.destination.findMany({ orderBy: { name: "asc" } }); }
+
+  listProviders() { return this.prisma.provider.findMany({ orderBy: { createdAt: "desc" } }); }
+
+  async updateProviderStatus(actorId: string, id: string, status: ProviderStatus) { const provider = await this.prisma.provider.update({ where: { id }, data: { status } }); await this.audit.record("PROVIDER_STATUS_UPDATED", "Provider", id, actorId, { status }); return provider; }
 
   async createDestination(actorId: string, input: CreateDestinationDto) {
     const exists = await this.prisma.destination.findUnique({ where: { slug: input.slug } });
