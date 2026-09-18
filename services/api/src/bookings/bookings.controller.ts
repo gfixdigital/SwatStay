@@ -10,6 +10,7 @@ import { AssignBookingDto } from "./dto/assign-booking.dto";
 import { BookingNoteDto } from "./dto/booking-note.dto";
 import { CreateBookingDto } from "./dto/create-booking.dto";
 import { ProviderAssignmentDto } from "./dto/provider-assignment.dto";
+import { ProviderDecisionDto } from "./dto/provider-decision.dto";
 import { BookingsService } from "./bookings.service";
 
 type RequestWithOptionalUser = { user?: { id: string } };
@@ -71,4 +72,14 @@ export class BookingsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.OPERATIONS)
   async confirmProviderAssignments(@Req() req: RequestWithUser, @Param("id") id: string) { return success(await this.bookings.confirmProviderAssignments(req.user.id, id), "Provider assignment confirmed"); }
+
+  @Get("provider/assignments")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.PROVIDER)
+  async providerAssignments(@Req() req: RequestWithUser) { return success(await this.bookings.providerAssignments(req.user.id), "Provider assignments fetched successfully"); }
+
+  @Patch("provider/assignments/:itemId")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.PROVIDER)
+  async providerDecision(@Req() req: RequestWithUser, @Param("itemId") itemId: string, @Body() input: ProviderDecisionDto) { return success(await this.bookings.providerDecision(req.user.id, itemId, input), "Provider assignment decision saved"); }
 }
