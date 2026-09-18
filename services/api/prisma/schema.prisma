@@ -197,27 +197,32 @@ model Provider {
 }
 
 model Booking {
-  id String @id @default(uuid())
-  reference String @unique
-  touristId String
-  packageId String?
-  destination String
-  travelStart DateTime
-  travelEnd DateTime
-  travelersCount Int
-  pickupCity String
-  specialRequests String?
-  status BookingStatus @default(CALL_PENDING)
-  paymentStatus PaymentStatus @default(PENDING)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  tourist User @relation("TouristBookings", fields: [touristId], references: [id])
-  package Package? @relation(fields: [packageId], references: [id])
-  items BookingItem[]
-  teamAssignments BookingTeamAssignment[]
-  events BookingEvent[]
-  payments Payment[]
-  commissions Commission[]
+  id                     String        @id @default(uuid())
+  reference              String        @unique
+  touristId              String
+  packageId              String?
+  destination            String
+  travelStart            DateTime
+  travelEnd              DateTime
+  travelersCount         Int
+  travelerType           String?
+  tier                   String?
+  pickupCity             String?
+  specialRequests        String?
+  whatsapp               String?
+  country                String?
+  preferredPaymentMethod String?
+  status                 BookingStatus @default(CALL_PENDING)
+  paymentStatus          PaymentStatus @default(PENDING)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  tourist                User          @relation("TouristBookings", fields: [touristId], references: [id])
+  package                Package?      @relation(fields: [packageId], references: [id])
+  items                  BookingItem[]
+  teamAssignments        BookingTeamAssignment[]
+  events                 BookingEvent[]
+  payments               Payment[]
+  commissions            Commission[]
 }
 
 model BookingItem {
