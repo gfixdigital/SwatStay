@@ -4,6 +4,7 @@ import { AdminModal } from "../components/AdminModal";
 import { FormField } from "../components/FormField";
 import { PageHeader } from "../components/PageHeader";
 import { teamMembers as initialMembers } from "../data/teamMembers";
+import { usePreviewState } from "../hooks/usePreviewState";
 import type { AdminTeamRole } from "../types/admin";
 
 const roles: AdminTeamRole[] = ["Admin", "Operations", "Support", "Finance", "QA"];
@@ -16,7 +17,7 @@ const accessPlan: { role: AdminTeamRole; access: string; restriction: string }[]
 ];
 
 export function TeamPage() {
-  const [members, setMembers] = useState(initialMembers);
+  const [members, setMembers] = usePreviewState("swatstay.admin.team-members", initialMembers);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");

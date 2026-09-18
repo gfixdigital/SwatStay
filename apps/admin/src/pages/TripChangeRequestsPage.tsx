@@ -12,6 +12,7 @@ import { StatusBadge } from "../components/StatusBadge";
 import { Timeline } from "../components/Timeline";
 import { tripChangeRequests as initialRequests } from "../data/tripChangeRequests";
 import { useBookingsPreview } from "../hooks/useBookingsPreview";
+import { usePreviewState } from "../hooks/usePreviewState";
 import type { TripChangeRequest, TripChangeStatus, TripChangeType } from "../types/admin";
 
 type Decision = "approve" | "reject" | "apply" | null;
@@ -20,7 +21,7 @@ const changeTypes: TripChangeType[] = ["Change travel date", "Change pickup city
 export function TripChangeRequestsPage() {
   const { id } = useParams();
   const { updateBooking } = useBookingsPreview();
-  const [requests, setRequests] = useState(initialRequests);
+  const [requests, setRequests] = usePreviewState("swatstay.admin.trip-change-requests", initialRequests);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("All");
   const [type, setType] = useState("All");

@@ -22,8 +22,9 @@ import { AdminToast } from "../components/AdminToast";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { PageHeader } from "../components/PageHeader";
 import { StatusBadge } from "../components/StatusBadge";
-import { initialVouchers, voucherStorageKey } from "../data/vouchers";
+import { initialVouchers } from "../data/vouchers";
 import { useBookingsPreview } from "../hooks/useBookingsPreview";
+import { usePreviewState } from "../hooks/usePreviewState";
 import { workflowBlockReason } from "../lib/bookingWorkflow";
 import type { ServiceType, ServiceVoucher, VoucherEvent, VoucherService } from "../types/admin";
 
@@ -45,15 +46,6 @@ function createEvent(type: VoucherEvent["type"], actor: string, detail: string):
   return { id: `event-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, type, actor, detail, occurredAt: nowLabel() };
 }
 
-function readStoredVouchers(): ServiceVoucher[] {
-  try {
-    const stored = window.localStorage.getItem(voucherStorageKey);
-    return stored ? JSON.parse(stored) as ServiceVoucher[] : initialVouchers;
-  } catch {
-    return initialVouchers;
-  }
-}
-
 function qrCells(value: string) {
   let seed = [...value].reduce((total, character) => total + character.charCodeAt(0), 0);
   return Array.from({ length: 21 * 21 }, (_, index) => {
@@ -70,7 +62,7 @@ function qrCells(value: string) {
 export function VouchersPage() {
   const { id: bookingId } = useParams<{ id?: string }>();
   const { bookings } = useBookingsPreview();
-  const [vouchers, setVouchers] = useState<ServiceVoucher[]>(readStoredVouchers);
+  const [vouchers, setVouchers] = usePreviewState<ServiceVoucher[]>("swatstay.admin.vouchers", initialVouchers);
   const [selectedId, setSelectedId] = useState(initialVouchers[0]?.id ?? "");
   const [modal, setModal] = useState<ModalMode>("none");
   const [search, setSearch] = useState("");
@@ -79,10 +71,6 @@ export function VouchersPage() {
   const [confirmRevoke, setConfirmRevoke] = useState(false);
   const routeBooking = bookingId ? bookings.find((booking) => booking.id === bookingId) : undefined;
   const voucherGate = routeBooking ? workflowBlockReason(routeBooking, "voucher") : null;
-
-  useEffect(() => {
-    window.localStorage.setItem(voucherStorageKey, JSON.stringify(vouchers));
-  }, [vouchers]);
 
   const selected = vouchers.find((voucher) => voucher.id === selectedId);
   const visible = useMemo(() => vouchers.filter((voucher) => {

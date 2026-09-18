@@ -380,6 +380,15 @@ model AuditLog {
   actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
 }
 
+model AdminRecord {
+  id          String   @id @default(uuid())
+  recordKey   String   @unique
+  payload     Json
+  updatedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model Payment {
   id                   String        @id @default(uuid())
   bookingId            String
