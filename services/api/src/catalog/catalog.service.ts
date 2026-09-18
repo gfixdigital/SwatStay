@@ -35,7 +35,7 @@ export class CatalogService {
 
   listProviders() { return this.prisma.provider.findMany({ orderBy: { createdAt: "desc" } }); }
 
-  async updateProviderStatus(actorId: string, id: string, status: ProviderStatus) { const provider = await this.prisma.provider.update({ where: { id }, data: { status } }); await this.audit.record("PROVIDER_STATUS_UPDATED", "Provider", id, actorId, { status }); return provider; }
+  async updateProviderStatus(actorId: string, id: string, status: ProviderStatus) { const existing = await this.prisma.provider.findUnique({ where: { id }, select: { userId: true } }); if (!existing) throw new NotFoundException("Provider not found"); const provider = await this.prisma.$transaction(async (tx) => { const updated = await tx.provider.update({ where: { id }, data: { status } }); if (existing.userId) await tx.user.update({ where: { id: existing.userId }, data: { isActive: status === ProviderStatus.APPROVED } }); return updated; }); await this.audit.record("PROVIDER_STATUS_UPDATED", "Provider", id, actorId, { status, accountActivated: status === ProviderStatus.APPROVED }); return provider; }
 
   async createDestination(actorId: string, input: CreateDestinationDto) {
     const exists = await this.prisma.destination.findUnique({ where: { slug: input.slug } });

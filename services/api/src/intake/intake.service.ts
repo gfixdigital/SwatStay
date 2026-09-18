@@ -1,9 +1,11 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../database/prisma.service";
 import { AuditService } from "../common/audit.service";
 import { ContactDto } from "./dto/contact.dto";
 import { CustomTripDto } from "./dto/custom-trip.dto";
 import { ProviderRegistrationDto } from "./dto/provider-registration.dto";
+import { UserRole } from "../common/enums";
+import { hash } from "bcryptjs";
 
 @Injectable()
 export class IntakeService {
@@ -25,8 +27,16 @@ export class IntakeService {
 
   async providerRegistration(input: ProviderRegistrationDto, userId?: string) {
     if (!input.consent) throw new BadRequestException("Terms and Privacy consent is required");
-    const record = await this.prisma.providerRegistration.create({ data: { userId, businessName: input.businessName, ownerName: input.ownerName, email: input.email, phone: input.phone, serviceCategory: input.serviceCategory, location: input.location, address: input.address, capacity: input.capacity, description: input.description, consent: input.consent } });
-    await this.audit.record("PROVIDER_REGISTRATION_SUBMITTED", "ProviderRegistration", record.id, userId, { source: "website" });
-    return { reference: record.id, status: record.status };
+    const email = input.email.toLowerCase();
+    const existing = await this.prisma.user.findFirst({ where: { OR: [{ email }, { phone: input.phone }] }, select: { id: true } });
+    if (existing) throw new ConflictException("An account with this email or phone already exists");
+    const result = await this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({ data: { fullName: input.ownerName, email, phone: input.phone, address: input.address, passwordHash: await hash(input.password, 12), role: UserRole.PROVIDER, isActive: false } });
+      const provider = await tx.provider.create({ data: { userId: user.id, businessName: input.businessName, ownerName: input.ownerName, phone: input.phone, serviceCategory: input.serviceCategory, location: input.location } });
+      const registration = await tx.providerRegistration.create({ data: { userId: user.id, businessName: input.businessName, ownerName: input.ownerName, email, phone: input.phone, serviceCategory: input.serviceCategory, location: input.location, address: input.address, capacity: input.capacity, description: input.description, consent: input.consent } });
+      return { user, provider, registration };
+    });
+    await this.audit.record("PROVIDER_REGISTRATION_SUBMITTED", "ProviderRegistration", result.registration.id, result.user.id, { source: "website", providerId: result.provider.id });
+    return { reference: result.registration.id, providerId: result.provider.id, status: result.registration.status, accountStatus: "PENDING_REVIEW" };
   }
 }
