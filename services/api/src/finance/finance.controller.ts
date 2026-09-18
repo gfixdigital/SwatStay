@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, Req, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { RolesGuard } from "../auth/roles.guard";
 import { Roles } from "../auth/roles.decorator";
@@ -10,6 +11,7 @@ import { PaymentProofDto } from "./dto/payment-proof.dto";
 import { PaymentReviewDto } from "./dto/payment-review.dto";
 import { CommissionDto } from "./dto/commission.dto";
 import { PayoutStatusDto } from "./dto/payout-status.dto";
+import type { StorageFile } from "../storage/supabase-storage.service";
 
 type RequestWithUser = { user: AuthenticatedUser };
 const financeRoles = [UserRole.ADMIN, UserRole.FINANCE, UserRole.OPERATIONS];
@@ -20,12 +22,18 @@ export class FinanceController {
 
   @Post("bookings/:id/payment-proof")
   @UseGuards(JwtAuthGuard)
-  async submitProof(@Req() req: RequestWithUser, @Param("id") id: string, @Body() input: PaymentProofDto) { return success(await this.finance.submitPaymentProof(req.user.id, id, input), "Payment proof submitted"); }
+  @UseInterceptors(FileInterceptor("proof", { limits: { fileSize: 5 * 1024 * 1024 }, fileFilter: (_req, file, callback) => callback(null, ["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(file.mimetype)) }))
+  async submitProof(@Req() req: RequestWithUser, @Param("id") id: string, @Body() input: PaymentProofDto, @UploadedFile() file?: StorageFile) { return success(await this.finance.submitPaymentProof(req.user.id, id, input, file as StorageFile), "Payment proof submitted"); }
 
   @Get("admin/payments")
   @Roles(...financeRoles)
   @UseGuards(JwtAuthGuard, RolesGuard)
   async payments() { return success(await this.finance.listPayments(), "Payments fetched successfully"); }
+
+  @Get("admin/payments/:id/proof-url")
+  @Roles(...financeRoles)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async proofUrl(@Param("id") id: string) { return success(await this.finance.getPaymentProofUrl(id), "Payment proof link created"); }
 
   @Patch("admin/payments/:id/review")
   @Roles(...financeRoles)

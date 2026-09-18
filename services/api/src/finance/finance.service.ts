@@ -6,22 +6,41 @@ import { PaymentProofDto } from "./dto/payment-proof.dto";
 import { PaymentReviewDto } from "./dto/payment-review.dto";
 import { CommissionDto } from "./dto/commission.dto";
 import { PayoutStatusDto } from "./dto/payout-status.dto";
+import { SupabaseStorageService, StorageFile } from "../storage/supabase-storage.service";
+import { randomUUID } from "node:crypto";
 
 @Injectable()
 export class FinanceService {
-  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService) {}
+  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly storage: SupabaseStorageService) {}
 
-  async submitPaymentProof(userId: string, bookingId: string, input: PaymentProofDto) {
+  async submitPaymentProof(userId: string, bookingId: string, input: PaymentProofDto, file: StorageFile) {
     const booking = await this.prisma.booking.findUnique({ where: { id: bookingId } });
     if (!booking) throw new NotFoundException("Booking not found");
     if (booking.touristId !== userId) throw new ForbiddenException("You cannot update this booking");
-    const payment = await this.prisma.payment.create({ data: { bookingId, submittedById: userId, amount: input.amount, method: input.method, transactionReference: input.transactionReference, proofUrl: input.proofUrl, reviewNote: input.notes, status: PaymentStatus.PROOF_SUBMITTED } });
-    await this.prisma.booking.update({ where: { id: bookingId }, data: { paymentStatus: PaymentStatus.PROOF_SUBMITTED } });
+    if (!file) throw new BadRequestException("Payment proof file is required");
+    const payment = await this.prisma.payment.create({ data: { id: randomUUID(), bookingId, submittedById: userId, amount: input.amount, method: input.method, transactionReference: input.transactionReference, reviewNote: input.notes, status: PaymentStatus.PROOF_SUBMITTED } });
+    try {
+      const proofPath = await this.storage.upload(`payment-proofs/${bookingId}/${payment.id}`, file);
+      await this.prisma.payment.update({ where: { id: payment.id }, data: { proofUrl: proofPath } });
+      await this.prisma.booking.update({ where: { id: bookingId }, data: { paymentStatus: PaymentStatus.PROOF_SUBMITTED } });
+    } catch (error) {
+      await this.prisma.payment.delete({ where: { id: payment.id } });
+      throw error;
+    }
     await this.audit.record("PAYMENT_PROOF_SUBMITTED", "Payment", payment.id, userId, { bookingId });
-    return payment;
+    return this.prisma.payment.findUnique({ where: { id: payment.id } });
   }
 
-  listPayments() { return this.prisma.payment.findMany({ include: { booking: { select: { reference: true, destination: true } }, submittedBy: { select: { id: true, fullName: true, email: true } }, reviewedBy: { select: { fullName: true } } }, orderBy: { submittedAt: "desc" } }); }
+  async listPayments() {
+    const payments = await this.prisma.payment.findMany({ include: { booking: { select: { reference: true, destination: true } }, submittedBy: { select: { id: true, fullName: true, email: true } }, reviewedBy: { select: { fullName: true } } }, orderBy: { submittedAt: "desc" } });
+    return Promise.all(payments.map(async (payment) => ({ ...payment, proofUrl: payment.proofUrl ? await this.storage.createSignedUrl(payment.proofUrl) : null, proofFileName: payment.proofUrl?.split("/").pop() ?? null })));
+  }
+
+  async getPaymentProofUrl(id: string) {
+    const payment = await this.prisma.payment.findUnique({ where: { id }, select: { proofUrl: true } });
+    if (!payment) throw new NotFoundException("Payment not found");
+    return { url: payment.proofUrl ? await this.storage.createSignedUrl(payment.proofUrl) : null };
+  }
 
   async reviewPayment(actorId: string, id: string, input: PaymentReviewDto) {
     const payment = await this.prisma.payment.findUnique({ where: { id } });

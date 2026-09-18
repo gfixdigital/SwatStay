@@ -638,7 +638,7 @@ Request:
 
 ### POST /bookings/:bookingId/payment-proof
 
-Protected: booking owner. This first backend foundation accepts a payment method, amount, optional transaction reference, optional proof URL placeholder, and notes. Real file upload is a later storage task.
+Protected: booking owner. Accepts `multipart/form-data` with `amount`, `method`, `transactionReference`, optional `notes`, and a required `proof` file. The API validates the file type and size, uploads it to the private Supabase Storage bucket, and stores only the private storage path on the payment record.
 
 ### GET /admin/payments
 

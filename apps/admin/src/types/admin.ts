@@ -76,6 +76,7 @@ export type Payment = {
   method: string;
   referenceNumber: string;
   proofFileName?: string;
+  proofUrl?: string;
   submittedAt: string;
   status: PaymentStatus;
   verifiedBy?: string;

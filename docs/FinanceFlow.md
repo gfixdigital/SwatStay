@@ -23,11 +23,11 @@ Payout is the amount actually paid to the provider after the service and settlem
 
 The API now exposes the first finance foundation under `/api/v1`:
 
-- `POST /bookings/:id/payment-proof` lets the owning tourist submit amount, method, reference, and a frontend-provided proof URL placeholder.
+- `POST /bookings/:id/payment-proof` lets the owning tourist submit amount, method, reference, and a receipt file. NestJS uploads it to the private `swatstay-files` Supabase Storage bucket under `payment-proofs/{bookingId}/{paymentId}/` and stores the private path on the payment record.
 - `GET /admin/payments` and `PATCH /admin/payments/:id/review` are restricted to `ADMIN` and `FINANCE` roles.
 - `POST /admin/finance/commissions` creates a per-service commission and its pending provider payout.
 - `GET /admin/finance/bookings/:id` and `GET /admin/payouts` provide finance views.
 - `PATCH /admin/payouts/:id/status` enforces `PENDING -> APPROVED -> PROCESSING -> PAID` with a failed-payment retry path through `FAILED -> PROCESSING`.
 - `GET /provider/finance` is restricted to the signed-in provider and returns only that provider's commissions and payouts.
 
-Every review, commission creation, and payout transition writes an audit log. File storage, payment gateway processing, tax handling, duplicate payout protection, and automated settlement remain later work.
+Every review, commission creation, and payout transition writes an audit log. Admin payment lists receive temporary signed proof URLs. Payment gateway processing, tax handling, duplicate payout protection, and automated settlement remain later work.
