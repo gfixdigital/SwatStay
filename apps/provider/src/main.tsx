@@ -1,4 +1,4 @@
-import { StrictMode, useMemo, useState } from "react";
+import { StrictMode, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   Activity,
@@ -76,6 +76,14 @@ type Assignment = {
   request: string;
   status: Status;
 };
+type LiveAssignment = { id: string; serviceType: string; status: string; provider?: { businessName?: string; serviceCategory?: string; location?: string } | null; booking: { reference: string; travelStart: string; travelersCount: number; destination: string; pickupCity: string; specialRequests?: string | null } };
+
+const API_BASE_URL = "http://localhost:4000/api/v1";
+const PROVIDER_TOKEN_KEY = "swatstay.provider.accessToken";
+function getProviderToken() { return window.localStorage.getItem(PROVIDER_TOKEN_KEY); }
+function serviceKind(serviceType: string): Kind { return ({ HOTEL: "Hotel", TRANSPORT: "Transport", GUIDE: "Tour guide", HIKING_GUIDE: "Tour guide", RESTAURANT: "Restaurant", PHOTOGRAPHY: "Photographer", ACTIVITY: "Activity provider" } as Record<string, Kind>)[serviceType] ?? "Activity provider"; }
+function assignmentStatus(status: string): Status { return status === "ACCEPTED" ? "Accepted" : status === "REJECTED" ? "Declined" : "Awaiting response"; }
+function mapLiveAssignment(item: LiveAssignment, providerId: string): Assignment { const date = new Date(item.booking.travelStart); return { id: item.id, providerId, reference: item.booking.reference, date: date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }), time: "Confirm with GFix", travelers: item.booking.travelersCount, service: `${serviceKind(item.serviceType)} service for ${item.booking.destination}`, resource: `${item.booking.pickupCity} coordination`, request: item.booking.specialRequests ?? "No additional request recorded.", status: assignmentStatus(item.status) }; }
 
 const providers: Provider[] = [
   {
@@ -279,6 +287,8 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [providerId, setProviderId] = useState("hotel");
   const [assignments, setAssignments] = useState(seedAssignments);
+  const [liveProvider, setLiveProvider] = useState<Provider | null>(null);
+  const [syncMessage, setSyncMessage] = useState("");
   const [activeHandoffId, setActiveHandoffId] = useState<string | null>(null);
   const [availability, setAvailability] = useState<Record<string, string>>({
     "12 Oct": "Limited",
@@ -297,7 +307,8 @@ function App() {
     },
   ]);
   const provider = providers.find((item) => item.id === providerId)!;
-  const assigned = assignments.filter((item) => item.providerId === providerId);
+  const visibleProvider = liveProvider ?? provider;
+  const assigned = assignments.filter((item) => item.providerId === (liveProvider?.id ?? providerId));
   const waiting = assigned.filter(
     (item) => item.status === "Awaiting response",
   ).length;
@@ -306,10 +317,26 @@ function App() {
     setView(next);
     setMenuOpen(false);
   };
-  const update = (id: string, status: Status) =>
-    setAssignments((current) =>
-      current.map((item) => (item.id === id ? { ...item, status } : item)),
-    );
+  useEffect(() => {
+    const token = getProviderToken();
+    if (!token) return;
+    void fetch(`${API_BASE_URL}/provider/assignments`, { headers: { Authorization: `Bearer ${token}` } }).then(async (response) => { if (!response.ok) throw new Error("Unable to load provider assignments"); return response.json() as Promise<{ data: LiveAssignment[] }>; }).then((body) => {
+      const first = body.data[0]?.provider;
+      const providerKind = serviceKind(body.data[0]?.serviceType ?? "ACTIVITY");
+      const liveId = body.data[0]?.provider?.businessName ?? "provider";
+      setLiveProvider(first ? { id: liveId, name: first.businessName ?? "Provider account", owner: "Provider account", kind: providerKind, location: first.location ?? "Swat", capacity: "Provider capacity", resourceLabel: "Service capacity", completionLabel: "Mark service complete", icon: providerKind === "Hotel" ? Hotel : providerKind === "Transport" ? Bus : providerKind === "Restaurant" ? Utensils : providerKind === "Tour guide" ? Mountain : providerKind === "Photographer" ? Camera : Activity, profileNote: "Only assigned booking details are visible." } : null);
+      setAssignments(body.data.map((item) => mapLiveAssignment(item, liveId)));
+      setSyncMessage("Live provider assignments loaded.");
+    }).catch((reason: Error) => setSyncMessage(reason.message));
+  }, []);
+  const update = (id: string, status: Status) => {
+    setAssignments((current) => current.map((item) => (item.id === id ? { ...item, status } : item)));
+    const token = getProviderToken();
+    if (!token) return;
+    const apiStatus = status === "Accepted" ? "ACCEPTED" : status === "Declined" ? "REJECTED" : null;
+    if (!apiStatus) return;
+    void fetch(`${API_BASE_URL}/provider/assignments/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ status: apiStatus }) }).then(async (response) => { if (!response.ok) throw new Error("Unable to save provider decision"); setSyncMessage(status === "Accepted" ? "Assignment accepted and sent to GFix Operations." : "Assignment declined and sent to GFix Operations."); }).catch((reason: Error) => setSyncMessage(reason.message));
+  };
   const send = () => {
     if (!message.trim()) return;
     setMessages((current) => [
@@ -349,12 +376,12 @@ function App() {
         </div>
         <div className="provider-card">
           <span className="avatar">
-            {provider.name.slice(0, 2).toUpperCase()}
+            {visibleProvider.name.slice(0, 2).toUpperCase()}
           </span>
           <div>
-            <strong>{provider.name}</strong>
+            <strong>{visibleProvider.name}</strong>
             <small>
-              {provider.kind} · {provider.location}
+              {visibleProvider.kind} · {visibleProvider.location}
             </small>
           </div>
           <span className="approved">
@@ -378,7 +405,7 @@ function App() {
         </nav>
         <div className="sidebar-foot">
           <ShieldCheck size={14} /> Frontend-only preview
-          <p>
+            <p>
             No real guest contact, payment proof, scan, or admin synchronization
             yet.
           </p>
@@ -394,19 +421,12 @@ function App() {
             <h1>{title(view)}</h1>
           </div>
           <div className="top-actions">
-            <label className="profile-switch">
+            {!liveProvider && <label className="profile-switch">
               Preview provider
-              <select
-                value={providerId}
-                onChange={(event) => setProviderId(event.target.value)}
-              >
-                {providers.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.kind}
-                  </option>
-                ))}
+              <select value={providerId} onChange={(event) => setProviderId(event.target.value)}>
+                {providers.map((item) => <option key={item.id} value={item.id}>{item.kind}</option>)}
               </select>
-            </label>
+            </label>}
             <button
               className="outline-button"
               onClick={playProviderTone}
@@ -419,17 +439,18 @@ function App() {
             </button>
           </div>
         </header>
-        <section className="notice">
+        {!liveProvider && <section className="notice">
           <AlertTriangle size={17} />
           <p>
             <strong>Demo profile switch:</strong> reviewers can preview each
             provider type. In the real system, a provider login will show only
             its own business and assigned services.
           </p>
-        </section>
+        </section>}
+        {syncMessage && <div className="notice"><CheckCircle2 size={17} /><p>{syncMessage}</p></div>}
         {view === "overview" && (
           <Overview
-            provider={provider}
+            provider={visibleProvider}
             assigned={assigned}
             waiting={waiting}
             accepted={accepted}
@@ -438,7 +459,7 @@ function App() {
         )}{" "}
         {view === "assignments" && (
           <Assignments
-            provider={provider}
+            provider={visibleProvider}
             assignments={assigned}
             onUpdate={update}
             onOpenScan={(id) => {
@@ -449,7 +470,7 @@ function App() {
         )}{" "}
         {view === "availability" && (
           <Availability
-            provider={provider}
+            provider={visibleProvider}
             availability={availability}
             onChange={(date, value) =>
               setAvailability((current) => ({ ...current, [date]: value }))
@@ -458,14 +479,14 @@ function App() {
         )}{" "}
         {view === "scan" && (
           <Voucher
-            provider={provider}
+            provider={visibleProvider}
             assignments={assigned}
             onVerified={openHandoff}
           />
         )}{" "}
         {view === "handoff" && (
           <Handoff
-            provider={provider}
+            provider={visibleProvider}
             service={handoff}
             onComplete={(id) => update(id, "Completed")}
             onIssue={(id) => update(id, "Issue reported")}
@@ -473,18 +494,18 @@ function App() {
           />
         )}{" "}
         {view === "earnings" && (
-          <Earnings provider={provider} assignments={assigned} />
+          <Earnings provider={visibleProvider} assignments={assigned} />
         )}{" "}
         {view === "support" && (
           <Support
-            provider={provider}
+            provider={visibleProvider}
             messages={messages}
             message={message}
             onMessage={setMessage}
             onSend={send}
           />
         )}{" "}
-        {view === "profile" && <Profile provider={provider} />}
+        {view === "profile" && <Profile provider={visibleProvider} />}
       </main>
     </div>
   );
