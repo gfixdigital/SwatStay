@@ -1,31 +1,31 @@
 import { useEffect, useState } from "react";
 import { bookings as initialBookings } from "../data/adminData";
-import type { Booking } from "../types/admin";
+import { adminRequest, getAdminToken } from "../lib/adminApi";
+import type { Booking, BookingStatus, PaymentStatus } from "../types/admin";
+
+type LiveBooking = { id: string; reference: string; tourist?: { fullName?: string; email?: string | null; phone?: string | null; preferredLanguage?: string }; package?: { name?: string; basePrice?: number; currency?: string } | null; destination: string; travelStart: string; travelEnd: string; travelersCount: number; pickupCity: string; specialRequests?: string | null; status: string; paymentStatus: string; totalAmount: number; amountPaid: number; paymentMethod?: string | null; assignedMember?: { id: string; fullName: string; role: string } | null; assignmentHistory?: Array<{ id: string; memberId: string; assignedAt: string; member?: { fullName?: string }; assignedBy?: { fullName?: string } | null }>; notes?: Array<{ id: string; note: string; actor?: string; createdAt: string }>; createdAt: string };
+type LiveTeamMember = { id: string; fullName: string; email?: string | null; role: string };
 
 const storageKey = "swatstay.admin.bookings.preview";
+const statusLabels: Record<string, BookingStatus> = { CALL_PENDING: "Call pending", TOURIST_CONFIRMED: "Tourist confirmed", PAYMENT_PENDING: "Call pending", ADVANCE_PAID: "Tourist confirmed", FULLY_PAID: "Provider selection", PROVIDER_SELECTION: "Provider selection", PROVIDER_PENDING: "Provider selection", CONFIRMED: "Provider selection", ACTIVE: "Active", COMPLETED: "Completed", CANCELLED: "Cancelled" };
+const paymentLabels: Record<string, PaymentStatus> = { PENDING: "Pending proof", PROOF_SUBMITTED: "Proof submitted", VERIFIED: "Verified", REJECTED: "Rejected", REFUNDED: "Rejected" };
+const reverseStatus: Record<BookingStatus, string> = { "Call pending": "CALL_PENDING", "Tourist confirmed": "TOURIST_CONFIRMED", "Provider selection": "PROVIDER_SELECTION", Active: "ACTIVE", Completed: "COMPLETED", Cancelled: "CANCELLED" };
+const reversePayment: Record<PaymentStatus, string> = { "Pending proof": "PENDING", "Proof submitted": "PROOF_SUBMITTED", Verified: "VERIFIED", Rejected: "REJECTED" };
 
-function readBookings() {
-  try {
-    const stored = window.localStorage.getItem(storageKey);
-    return stored ? JSON.parse(stored) as Booking[] : initialBookings;
-  } catch {
-    return initialBookings;
-  }
-}
+function readBookings() { try { const stored = window.localStorage.getItem(storageKey); return stored ? JSON.parse(stored) as Booking[] : initialBookings; } catch { return initialBookings; } }
+function mapBooking(item: LiveBooking): Booking { const latestNote = item.notes?.at(-1); return { id: item.id, reference: item.reference, touristName: item.tourist?.fullName ?? "Unknown tourist", phone: item.tourist?.phone ?? "Not provided", email: item.tourist?.email ?? "", country: "Not provided", preferredLanguage: item.tourist?.preferredLanguage === "UR" ? "Urdu" : item.tourist?.preferredLanguage === "ZH" ? "Chinese" : "English", packageName: item.package?.name ?? "Custom trip", destination: item.destination, travelStartDate: item.travelStart.slice(0, 10), travelEndDate: item.travelEnd.slice(0, 10), travelers: item.travelersCount, pickupCity: item.pickupCity, specialRequests: item.specialRequests ?? "", status: statusLabels[item.status] ?? "Call pending", paymentStatus: paymentLabels[item.paymentStatus] ?? "Pending proof", assignedSupportMember: item.assignedMember?.fullName ?? "Unassigned", totalAmount: item.totalAmount, amountPaid: item.amountPaid, paymentMethod: item.paymentMethod ?? "Not recorded", createdAt: item.createdAt, priority: "Normal", lastContactAttempt: latestNote ? `Note added ${new Date(latestNote.createdAt).toLocaleString()}` : "No attempt yet", callNotes: latestNote?.note ?? "", assignmentHistory: item.assignmentHistory?.map((entry) => ({ id: entry.id, previousMember: "Team queue", assignedMember: entry.member?.fullName ?? "Assigned member", reason: "Live assignment", assignedBy: entry.assignedBy?.fullName ?? "Team member", assignedAt: entry.assignedAt })) ?? [] }; }
 
 export function useBookingsPreview() {
-  const [bookings, setBookings] = useState<Booking[]>(readBookings);
+  const [bookings, setBookings] = useState<Booking[]>(() => getAdminToken() ? [] : readBookings());
+  const [teamMembers, setTeamMembers] = useState<LiveTeamMember[]>([]);
+  const [loading, setLoading] = useState(Boolean(getAdminToken()));
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    window.localStorage.setItem(storageKey, JSON.stringify(bookings));
-  }, [bookings]);
+  useEffect(() => { const token = getAdminToken(); if (!token) { setLoading(false); return; } Promise.all([adminRequest<LiveBooking[]>("/admin/bookings"), adminRequest<LiveTeamMember[]>("/admin/team-members")]).then(([rows, members]) => { setBookings(rows.map(mapBooking)); setTeamMembers(members); setError(""); }).catch((reason: Error) => setError(reason.message)).finally(() => setLoading(false)); }, []);
+  useEffect(() => { if (!getAdminToken()) window.localStorage.setItem(storageKey, JSON.stringify(bookings)); }, [bookings]);
 
-  function updateBooking(id: string, update: Partial<Booking> | ((booking: Booking) => Booking)) {
-    setBookings((current) => current.map((booking) => {
-      if (booking.id !== id) return booking;
-      return typeof update === "function" ? update(booking) : { ...booking, ...update };
-    }));
-  }
+  function updateBooking(id: string, update: Partial<Booking> | ((booking: Booking) => Booking)) { const current = bookings.find((booking) => booking.id === id); if (!current) return; const next = typeof update === "function" ? update(current) : { ...current, ...update }; setBookings((items) => items.map((booking) => booking.id === id ? next : booking)); const requests: Promise<unknown>[] = []; if (next.status !== current.status) requests.push(adminRequest(`/admin/bookings/${id}/status`, { method: "PATCH", body: JSON.stringify({ status: reverseStatus[next.status] }) })); if (next.paymentStatus !== current.paymentStatus) requests.push(adminRequest(`/admin/bookings/${id}/payment-status`, { method: "PATCH", body: JSON.stringify({ paymentStatus: reversePayment[next.paymentStatus] }) })); if (next.callNotes !== current.callNotes && next.callNotes.trim()) requests.push(adminRequest(`/admin/bookings/${id}/notes`, { method: "POST", body: JSON.stringify({ note: next.callNotes }) })); void Promise.all(requests).catch((reason: Error) => setError(reason.message)); }
+  function assignBooking(id: string, memberId: string, reason: string) { const member = teamMembers.find((entry) => entry.id === memberId); if (!member) return; setBookings((items) => items.map((booking) => booking.id === id ? { ...booking, assignedSupportMember: member.fullName } : booking)); void adminRequest(`/admin/bookings/${id}/assignment`, { method: "PATCH", body: JSON.stringify({ memberId, reason }) }).catch((reason: Error) => setError(reason.message)); }
 
-  return { bookings, updateBooking };
+  return { bookings, updateBooking, assignBooking, teamMembers, loading, error };
 }

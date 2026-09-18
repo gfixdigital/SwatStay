@@ -7,35 +7,35 @@ datasource db {
 }
 
 model User {
-  id                                  String                  @id @default(uuid())
-  fullName                            String
-  email                               String?                 @unique
-  phone                               String?                 @unique
-  passwordHash                        String?
-  role                                UserRole
-  preferredLanguage                   Language                @default(EN)
-  isActive                            Boolean                 @default(true)
-  createdAt                           DateTime                @default(now())
-  updatedAt                           DateTime                @updatedAt
-  address                             String?
-  travelPreferences                   Json?
-  AuditLog                            AuditLog[]
-  AuthSession                         AuthSession[]
-  bookings                            Booking[]               @relation("TouristBookings")
-  events                              BookingEvent[]
-  assignedBy                          BookingTeamAssignment[] @relation("AssignedBy")
-  assignments                         BookingTeamAssignment[]
-  ConsentRecord                       ConsentRecord[]
-  CustomTripRequest                   CustomTripRequest[]
-  DataDeletionRequest                 DataDeletionRequest[]
-  Payment_Payment_reviewedByIdToUser  Payment[]               @relation("Payment_reviewedByIdToUser")
-  Payment_Payment_submittedByIdToUser Payment[]               @relation("Payment_submittedByIdToUser")
-  Payout                              Payout[]
-  providerProfile                     Provider?
-  ProviderRegistration                ProviderRegistration[]
-  SupportMessage                      SupportMessage[]
-  SupportTicket                       SupportTicket[]
-  touristProfile                      TouristProfile?
+  id                String   @id @default(uuid())
+  fullName          String
+  email             String?  @unique
+  phone             String?  @unique
+  address           String?
+  travelPreferences Json?
+  passwordHash      String?
+  role              UserRole
+  preferredLanguage Language @default(EN)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  touristProfile    TouristProfile?
+  providerProfile   Provider?
+  bookings          Booking[] @relation("TouristBookings")
+  assignments       BookingTeamAssignment[]
+  assignedBy        BookingTeamAssignment[] @relation("AssignedBy")
+  events            BookingEvent[]
+  sessions          AuthSession[]
+  consentRecords    ConsentRecord[]
+  deletionRequests  DataDeletionRequest[]
+  supportTickets    SupportTicket[]
+  auditLogs         AuditLog[]
+  customTripRequests CustomTripRequest[]
+  providerRegistrations ProviderRegistration[]
+  supportMessages   SupportMessage[]
+  paymentSubmissions Payment[] @relation("PaymentSubmitter")
+  paymentReviews    Payment[] @relation("PaymentReviewer")
+  payoutApprovals   Payout[] @relation("PayoutApprover")
 }
 
 model TouristProfile {
@@ -52,10 +52,16 @@ model Destination {
   id               String    @id @default(uuid())
   name             String
   slug             String    @unique
-  shortDescription String?
   description      String?
-  imageUrl         String?
+  shortDescription String?
+  fullDescription  String?
   bestFor          String[]
+  travelTime       String?
+  popularServices  Json?
+  imageUrl         String?
+  gallery          Json?
+  seoTitle         String?
+  seoDescription   String?
   isActive         Boolean   @default(true)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -76,9 +82,15 @@ model Package {
   durationNights     Int?
   basePrice          Int
   currency           String                   @default("PKR")
+  imageUrl           String?
   coverImageUrl      String?
   image              String?
+  gallery            Json?
+  itinerary          Json?
   cancellationPolicy String?
+  cancellationSummary String?
+  seoTitle           String?
+  seoDescription     String?
   isActive           Boolean                  @default(true)
   createdAt          DateTime                 @default(now())
   updatedAt          DateTime                 @updatedAt
@@ -124,10 +136,10 @@ model Provider {
   defaultCommissionRate Decimal?       @db.Decimal(5, 2)
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
-  bookingItems          BookingItem[]
-  Commission            Commission[]
-  Payout                Payout[]
   user                  User?          @relation(fields: [userId], references: [id])
+  bookingItems          BookingItem[]
+  commissions           Commission[]
+  payouts               Payout[]
 }
 
 model Booking {
@@ -159,8 +171,8 @@ model Booking {
   events                 BookingEvent[]
   items                  BookingItem[]
   teamAssignments        BookingTeamAssignment[]
-  Commission             Commission[]
-  Payment                Payment[]
+  payments               Payment[]
+  commissions            Commission[]
 }
 
 model BookingItem {
@@ -173,7 +185,7 @@ model BookingItem {
   commission  Int?
   booking     Booking          @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   provider    Provider?        @relation(fields: [providerId], references: [id])
-  Commission  Commission[]
+  commissions Commission[]
 }
 
 model BookingTeamAssignment {
@@ -199,56 +211,50 @@ model BookingEvent {
 }
 
 model AuditLog {
-  id         String   @id
+  id         String   @id @default(uuid())
   actorId    String?
   action     String
   entityType String
   entityId   String?
   metadata   Json?
   createdAt  DateTime @default(now())
-  User       User?    @relation(fields: [actorId], references: [id])
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
 }
 
 model AuthSession {
-  id        String    @id
-  userId    String
-  tokenHash String    @unique
-  expiresAt DateTime
-  revokedAt DateTime?
-  createdAt DateTime  @default(now())
-  User      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model Commission {
-  id               String       @id
-  bookingId        String
-  bookingItemId    String?
-  providerId       String
-  rate             Decimal      @db.Decimal(5, 2)
-  grossAmount      Int
-  commissionAmount Int
-  providerAmount   Int
-  currency         String       @default("PKR")
-  createdAt        DateTime     @default(now())
-  Booking          Booking      @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  BookingItem      BookingItem? @relation(fields: [bookingItemId], references: [id])
-  Provider         Provider     @relation(fields: [providerId], references: [id])
-  Payout           Payout?
+  id         String   @id @default(uuid())
+  userId     String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model ConsentRecord {
-  id            String   @id
-  userId        String?
-  consentType   String
+  id           String   @id @default(uuid())
+  userId       String?
+  consentType  String
   policyVersion String
-  accepted      Boolean
-  source        String
-  createdAt     DateTime @default(now())
-  User          User?    @relation(fields: [userId], references: [id])
+  accepted     Boolean
+  source       String
+  createdAt    DateTime @default(now())
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model DataDeletionRequest {
+  id         String   @id @default(uuid())
+  userId     String?
+  email      String
+  reason     String?
+  status     String   @default("REQUESTED")
+  createdAt  DateTime @default(now())
+  resolvedAt DateTime?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
 
 model ContactSubmission {
-  id        String   @id
+  id        String   @id @default(uuid())
   name      String
   email     String
   phone     String?
@@ -258,11 +264,11 @@ model ContactSubmission {
   status    String   @default("NEW")
   consent   Boolean
   createdAt DateTime @default(now())
-  updatedAt DateTime
+  updatedAt DateTime @updatedAt
 }
 
 model CustomTripRequest {
-  id            String    @id
+  id            String   @id @default(uuid())
   userId        String?
   name          String
   email         String
@@ -276,45 +282,97 @@ model CustomTripRequest {
   interests     String?
   budget        String?
   notes         String?
-  status        String    @default("NEW")
+  status        String   @default("NEW")
   consent       Boolean
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime
-  User          User?     @relation(fields: [userId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
 
-model DataDeletionRequest {
-  id         String    @id
-  userId     String?
-  email      String
-  reason     String?
-  status     String    @default("REQUESTED")
-  createdAt  DateTime  @default(now())
-  resolvedAt DateTime?
-  User       User?     @relation(fields: [userId], references: [id])
+model ProviderRegistration {
+  id              String   @id @default(uuid())
+  userId          String?
+  businessName    String
+  ownerName       String
+  email           String
+  phone           String
+  serviceCategory ServiceType
+  location        String
+  address         String?
+  capacity        Int?
+  description     String?
+  status          String   @default("NEW")
+  consent         Boolean
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model SupportTicket {
+  id          String           @id @default(uuid())
+  userId      String?
+  bookingId   String?
+  guestEmail  String?
+  subject     String
+  issueType   String
+  priority    String           @default("NORMAL")
+  status      String           @default("OPEN")
+  assignedTo  String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  user        User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  messages    SupportMessage[]
+}
+
+model SupportMessage {
+  id         String        @id @default(uuid())
+  ticketId   String
+  authorId   String?
+  body       String
+  audience   String        @default("TRAVELER")
+  createdAt  DateTime      @default(now())
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author     User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
 }
 
 model Payment {
-  id                               String        @id
-  bookingId                        String
-  submittedById                    String?
-  amount                           Int
-  currency                         String        @default("PKR")
-  method                           String
-  transactionReference             String?
-  proofUrl                         String?
-  status                           PaymentStatus @default(PENDING)
-  reviewNote                       String?
-  reviewedById                     String?
-  submittedAt                      DateTime      @default(now())
-  reviewedAt                       DateTime?
-  Booking                          Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  User_Payment_reviewedByIdToUser  User?         @relation("Payment_reviewedByIdToUser", fields: [reviewedById], references: [id])
-  User_Payment_submittedByIdToUser User?         @relation("Payment_submittedByIdToUser", fields: [submittedById], references: [id])
+  id                   String        @id @default(uuid())
+  bookingId            String
+  submittedById        String?
+  amount               Int
+  currency             String        @default("PKR")
+  method               String
+  transactionReference String?
+  proofUrl             String?
+  status               PaymentStatus @default(PENDING)
+  reviewNote           String?
+  reviewedById         String?
+  submittedAt          DateTime      @default(now())
+  reviewedAt           DateTime?
+  booking              Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  submittedBy          User?         @relation("PaymentSubmitter", fields: [submittedById], references: [id], onDelete: SetNull)
+  reviewedBy           User?         @relation("PaymentReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+}
+
+model Commission {
+  id               String        @id @default(uuid())
+  bookingId        String
+  bookingItemId    String?
+  providerId       String
+  rate             Decimal       @db.Decimal(5, 2)
+  grossAmount      Int
+  commissionAmount Int
+  providerAmount   Int
+  currency         String        @default("PKR")
+  createdAt        DateTime      @default(now())
+  booking          Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingItem      BookingItem?  @relation(fields: [bookingItemId], references: [id], onDelete: SetNull)
+  provider         Provider      @relation(fields: [providerId], references: [id])
+  payout           Payout?
 }
 
 model Payout {
-  id           String       @id
+  id           String       @id @default(uuid())
   providerId   String
   commissionId String       @unique
   amount       Int
@@ -326,56 +384,10 @@ model Payout {
   approvedById String?
   paidAt       DateTime?
   createdAt    DateTime     @default(now())
-  updatedAt    DateTime
-  User         User?        @relation(fields: [approvedById], references: [id])
-  Commission   Commission   @relation(fields: [commissionId], references: [id])
-  Provider     Provider     @relation(fields: [providerId], references: [id])
-}
-
-model ProviderRegistration {
-  id              String      @id
-  userId          String?
-  businessName    String
-  ownerName       String
-  email           String
-  phone           String
-  serviceCategory ServiceType
-  location        String
-  address         String?
-  capacity        Int?
-  description     String?
-  status          String      @default("NEW")
-  consent         Boolean
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime
-  User            User?       @relation(fields: [userId], references: [id])
-}
-
-model SupportMessage {
-  id            String        @id
-  ticketId      String
-  authorId      String?
-  body          String
-  audience      String        @default("TRAVELER")
-  createdAt     DateTime      @default(now())
-  User          User?         @relation(fields: [authorId], references: [id])
-  SupportTicket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-}
-
-model SupportTicket {
-  id             String           @id
-  userId         String?
-  bookingId      String?
-  guestEmail     String?
-  subject        String
-  issueType      String
-  priority       String           @default("NORMAL")
-  status         String           @default("OPEN")
-  assignedTo     String?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime
-  SupportMessage SupportMessage[]
-  User           User?            @relation(fields: [userId], references: [id])
+  updatedAt    DateTime     @updatedAt
+  provider     Provider     @relation(fields: [providerId], references: [id])
+  commission   Commission   @relation(fields: [commissionId], references: [id])
+  approvedBy   User?        @relation("PayoutApprover", fields: [approvedById], references: [id], onDelete: SetNull)
 }
 
 enum UserRole {

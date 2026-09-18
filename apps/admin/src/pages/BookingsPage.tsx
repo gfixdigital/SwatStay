@@ -7,7 +7,7 @@ import { useBookingsPreview } from "../hooks/useBookingsPreview";
 import type { Booking } from "../types/admin";
 
 export function BookingsPage() {
-  const { bookings } = useBookingsPreview();
+  const { bookings, loading, error } = useBookingsPreview();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("All");
   const [destination, setDestination] = useState("All");
@@ -44,6 +44,8 @@ export function BookingsPage() {
 
   return <>
     <PageHeader eyebrow="STEP 1 · BOOKING INBOX" title="Booking requests" description="Operations receives every new request here, assigns one queue owner, then hands it to Support for the confirmation call." actions={<button type="button" className="button-secondary" onClick={exportFilteredBookings}><Download size={15}/> Export CSV</button>}/>
+    {loading && <p className="mb-4 rounded-md border border-border bg-white p-3 text-sm text-stone">Loading live booking requests...</p>}
+    {error && <p className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
     <section className="mb-4 grid gap-3 rounded-lg border border-border bg-white p-3 md:grid-cols-2 xl:grid-cols-3">
       <label className="relative"><span className="sr-only">Search bookings</span><Search className="absolute left-3 top-2.5 text-stone" size={16}/><input className="field pl-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Reference, tourist, phone, package"/></label>
       <select className="field" value={status} onChange={(event) => setStatus(event.target.value)}><option>All</option>{[...new Set(bookings.map((booking) => booking.status))].map((item) => <option key={item}>{item}</option>)}</select>

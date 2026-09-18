@@ -1,25 +1,13 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { PrismaService } from "../prisma/prisma.service";
+import { PrismaService } from "../database/prisma.service";
 
 @Injectable()
 export class PackagesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(filters?: { destination?: string; type?: string; tier?: string }) {
-    const where: Record<string, unknown> = { isActive: true };
-
-    if (filters?.destination) {
-      where.destination = { slug: filters.destination };
-    }
-    if (filters?.type) {
-      where.type = filters.type;
-    }
-    if (filters?.tier) {
-      where.tier = filters.tier;
-    }
-
+  list() {
     return this.prisma.package.findMany({
-      where,
+      where: { isActive: true },
       include: {
         destination: { select: { id: true, name: true, slug: true } },
         items: true,
@@ -29,20 +17,23 @@ export class PackagesService {
     });
   }
 
-  async findBySlug(slug: string) {
-    const pkg = await this.prisma.package.findUnique({
-      where: { slug },
+  async getBySlug(slug: string) {
+    const item = await this.prisma.package.findFirst({
+      where: { slug, isActive: true },
       include: {
         destination: { select: { id: true, name: true, slug: true } },
         items: true,
         serviceAssignments: { orderBy: { sortOrder: "asc" } },
       },
     });
+    if (!item) throw new NotFoundException("Package not found");
+    return item;
+  }
 
-    if (!pkg) {
-      throw new NotFoundException(`Package with slug "${slug}" not found`);
-    }
-
-    return pkg;
+  destinations() {
+    return this.prisma.destination.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+    });
   }
 }

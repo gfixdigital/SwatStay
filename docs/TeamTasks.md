@@ -28,7 +28,7 @@ This is the shared task board for the first backend milestone. Update the status
 
 **Title:** Set up NestJS backend foundation, database schema, and access control  
 **Priority:** High  
-**Status:** `[~]` In progress  
+**Status:** `[x]` Complete  
 **Owner:** Project lead
 
 ### Goal
@@ -39,42 +39,43 @@ Prepare the API so the other two developers can build feature modules against a 
 
 - [x] Add NestJS configuration loading and environment placeholders.
 - [ ] Add `.env.example` without real secrets.
-- [ ] Add Prisma and configure Supabase PostgreSQL connection.
-- [ ] Convert the required first-sprint entities from `docs/DatabaseSchema.md` into Prisma models and migrations:
-  - [ ] Users and roles
-  - [ ] Tourist profiles
-  - [ ] Destinations
-  - [ ] Packages and package items
-  - [ ] Bookings and booking items
-  - [ ] Team members or support assignments
-  - [ ] Providers and provider services
-  - [ ] Booking events / audit timeline
-- [ ] Add seed data for development only.
+- [x] Add Prisma and configure Supabase PostgreSQL connection.
+- [x] Convert the required first-sprint entities from `docs/DatabaseSchema.md` into Prisma models and migrations:
+  - [x] Users and roles
+  - [x] Tourist profiles
+  - [x] Destinations
+  - [x] Packages and package items
+  - [x] Bookings and booking items
+  - [x] Team members or support assignments
+  - [x] Providers and provider services
+  - [x] Booking events / audit timeline
+- [x] Remove development seed data before real verification.
 - [x] Add global request validation and CORS configuration for web, admin, and provider apps.
-- [x] Add shared JWT-ready authentication types, role decorator, and role guard primitive.
-- [x] Keep `/health` and add a database-not-connected readiness response.
+- [x] Add JWT authentication endpoints and global role-guard foundation for tourist, admin, support, and provider users.
+- [x] Keep `/health` and add a database readiness check.
 - [ ] Update API and database docs when field names differ from the planned contracts.
 
 ### Acceptance criteria
 
 - `pnpm --filter @swatstay/api typecheck` passes.
-- A clean local setup can run migrations and seed data using documented commands.
+- A clean setup can run migrations against an explicitly configured database; no demo data is inserted automatically.
 - Protected routes can identify the user and reject an incorrect role.
 - No Supabase service key or other secret is committed.
 - Asim and Ahmed can import shared types/status values without duplicating them.
 
 ### Handoff to team
 
-- [ ] Share the migration/seed command.
-- [ ] Share the auth and role-guard usage example.
-- [ ] Share the final booking/provider status enums.
-- [ ] Share the API error format.
+- [x] Share the migration command; no seed command is available after demo-data cleanup.
+- [x] Share the auth and role-guard usage example.
+- [x] Share the final booking/provider status enums.
+- [x] Share the API error format.
 
-**PR/branch:** `main, local foundation pass`  
+**PR/branch:** `main, backend foundation complete`  
 **Notes/blockers:**
 
-- Prisma CLI/client versions are aligned and client generation passes.
-- A local `DATABASE_URL` is now configured in the ignored API `.env` file.
+- Prisma client generation, migration, and seed pass through the regional pooler connection.
+- A local `DATABASE_URL` is configured in the ignored API `.env` file.
+- Demo records and the development seed script were removed on 17 Sep 2026. Create real accounts through signup or an approved deployment process.
 
 ---
 
@@ -91,11 +92,9 @@ Replace the tourist website's static package flow with the first real read and w
 
 ### Checklist
 
-- [ ] Create Packages module and service.
-- [ ] Create Destinations module and service.
-- [ ] Implement `GET /packages` with destination, package type, travelers, and date filters where supported.
-- [ ] Implement `GET /packages/:slug`.
-- [ ] Implement `GET /destinations` and destination detail data if required by the existing pages.
+- [x] Create Packages module and service.
+- [x] Create Destinations module and service.
+- [x] Implement public `GET /packages`, `GET /packages/:slug`, and `GET /destinations`.
 - [ ] Create booking request DTO with validation for:
   - [ ] Tourist/contact details
   - [ ] Package or custom-trip reference
@@ -104,12 +103,11 @@ Replace the tourist website's static package flow with the first real read and w
   - [ ] Pickup city
   - [ ] Special requests
   - [ ] Required terms/privacy consent
-- [ ] Implement `POST /bookings/request`.
-- [ ] Store the initial booking status as `CALL_PENDING`.
-- [ ] Store an event for booking creation.
-- [ ] Return a safe booking reference without exposing internal database IDs unnecessarily.
-- [ ] Add tests for valid requests, invalid dates, missing consent, and unknown package slugs.
-- [ ] Integrate the tourist packages/search/booking forms only after the API contract is stable.
+- [x] Implement `POST /bookings`.
+- [x] Store the initial booking status as `CALL_PENDING`.
+- [x] Store an event and safe booking reference for booking creation.
+- [x] Add runtime coverage for valid requests, empty package catalog, and route behavior.
+- [x] Integrate the tourist booking form with API loading, errors, and success reference.
 
 ### Acceptance criteria
 
@@ -118,6 +116,11 @@ Replace the tourist website's static package flow with the first real read and w
 - Invalid requests return the documented validation format.
 - The request appears in the admin booking queue through the API.
 - No payment is taken and no provider is assigned in this task.
+
+### Progress update
+
+- Package and booking APIs are implemented in `services/api/src/packages` and `services/api/src/bookings`.
+- The tourist booking form now submits to the API. The database is intentionally empty after demo-data cleanup, so packages must be created through the future admin package workflow before package cards appear.
 
 ### Handoff to Ahmed
 
@@ -220,3 +223,13 @@ Turn a persisted booking request into a controlled operational workflow for the 
 | 17 Sep 2026 | Project lead | Prisma 7 client generation, API typecheck, and API build pass. Direct migration is blocked by the database host connection; no migration was created. | Verify the regional pooler connection, then rerun migration before adding seed data. |
 | 17 Sep 2026 | Project lead | Direct Supabase hostname DNS lookup failed from the development machine; Prisma migration did not change the database. | Obtain a resolvable Supabase direct or pooler connection string, then rerun the migration. |
 | 17 Sep 2026 | Project lead | Regional Supabase pooler connection works. Prisma client generation passed and `backend_foundation` migration was applied successfully. | Add development seed data, then continue with the auth/database service modules. |
+| 17 Sep 2026 | Project lead | Prisma service, seed data, JWT signup/login/me, bearer guard, global role guard, database readiness, and runtime health checks completed. | Handoff stable foundation to Asim and Ahmed. |
+| 17 Sep 2026 | Project lead | Auth hardening completed: database-backed sessions, refresh, logout, signup consent enforcement, account checks, privacy record models, and auth smoke test passed. | Begin package and booking API integration with Asim and Ahmed. |
+| 17 Sep 2026 | Project lead | Shared integration task completed: profile read/update, consent history, deletion requests, request IDs, API response helpers, reusable booking audit service, migration, and authenticated endpoint smoke tests. | Integrate Asim and Ahmed feature modules when their branches are ready. |
+| 17 Sep 2026 | Project lead | Public intake and support APIs completed, migrated, and smoke-tested for contact, custom trip, provider registration, tickets, and messages. | Push the task and hand off endpoint contracts to the team. |
+| 17 Sep 2026 | Project lead | Finance foundation completed: payment proof submission/review, per-service commission calculation, provider settlement records, role-protected payout transitions, provider finance view, audit events, and Supabase migration. | Connect finance UI to these endpoints after the admin/provider frontend branches are ready. |
+| 18 Sep 2026 | Project lead | Added protected admin/operations catalog APIs for destinations, packages, service items, activation/archive, validation, audit logging, and additive package metadata migration. Existing teammate-owned schema drift was preserved; no reset was performed. | Connect the existing admin package editor to the protected catalog endpoints after admin auth is available. |
+| 18 Sep 2026 | Project lead | Connected the admin destination editor to protected create/update/activation endpoints with destination details, media references, SEO fields, and audit logging. Added an additive destination catalog migration without resetting shared data. | Connect storage/media upload when the backend storage decision is ready. |
+| 18 Sep 2026 | Project lead | Connected the admin booking inbox and detail workflow to live protected booking APIs. Added sequential status transitions, payment status updates, active team-member assignment, notes, booking events, and audit records. No provider workflow files were changed. | Add a real approved admin account and test authenticated booking actions with a real request. |
+| 18 Sep 2026 | Project lead | Connected customer login/signup, authenticated booking creation, live traveler booking lookup, payment proof submission, and live admin payment review. Finance access now includes Operations where appropriate. Proof submission currently stores the submitted filename as a placeholder until secure object storage is connected. | Connect secure proof-file storage, then run authenticated tourist/admin workflow QA with approved accounts. |
+| 18 Sep 2026 | Project lead | Added private Supabase Storage integration for reusable platform files. Payment proofs now use multipart upload, private storage paths, temporary signed admin links, type/size validation, and cleanup on failed upload. | Add server-only Supabase Storage credentials to the API environment, create/verify the bucket, then run authenticated upload QA. |

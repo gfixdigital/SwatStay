@@ -73,6 +73,25 @@ Rate limits must be enforced by the API gateway and NestJS guards, never by fron
 
 The API should return HTTP `429` with a safe retry-after value. CAPTCHA or equivalent bot verification must be verified on the server for public forms after the provider is selected. Frontend checkboxes are only a visual preview and provide no protection.
 
+### Public intake and support endpoints
+
+The first backend implementation includes these routes. Public intake routes require validated Terms and Privacy consent and are rate limited.
+
+```txt
+POST /contact
+POST /custom-trips/request
+POST /providers/register
+POST /support/tickets              protected
+GET  /support/tickets              protected
+POST /support/tickets/:id/messages protected
+GET  /users/me                     protected
+PATCH /users/me                    protected
+GET  /privacy/consents             protected
+POST /privacy/data-deletion        protected
+```
+
+Contact, custom-trip, and provider registration responses return a frontend-safe reference and status. Email, WhatsApp, file storage, realtime chat, and admin review notifications remain pending backend work.
+
 ## 3. Standard Response Shape
 
 Success:
@@ -172,6 +191,10 @@ Response data:
 ### GET /auth/me
 
 Protected.
+
+### GET /users/me/bookings
+
+Protected for the logged-in tourist. Returns the tourist's bookings with package pricing and payment records for the dashboard payment summary.
 
 Purpose: get current logged-in user.
 
@@ -278,9 +301,49 @@ Protected: `ADMIN`, `OPERATIONS`.
 
 Purpose: update package.
 
+### GET /admin/destinations
+
+Protected: `ADMIN`, `OPERATIONS`. Returns the destination catalog for package editors.
+
+### POST /admin/destinations
+
+Protected: `ADMIN`, `OPERATIONS`. Creates a destination with a unique lowercase slug.
+
+The payload may include `description`, `shortDescription`, `fullDescription`, `bestFor`, `travelTime`, `popularServices`, `imageUrl`, `gallery`, `seoTitle`, and `seoDescription`.
+
+### PATCH /admin/destinations/:id
+
+Protected: `ADMIN`, `OPERATIONS`. Updates destination content, media references, and SEO metadata. The change is recorded in the audit log.
+
+### PATCH /admin/destinations/:id/active
+
+Protected: `ADMIN`, `OPERATIONS`. Body: `{ "isActive": true|false }`. Activates or archives a destination and records the change in the audit log.
+
+### GET /admin/packages
+
+Protected: `ADMIN`, `OPERATIONS`. Returns active and inactive packages with destination and included service items.
+
+### POST /admin/packages
+
+Protected: `ADMIN`, `OPERATIONS`. Creates a package with destination, pricing, package type, tier, optional media/SEO/itinerary metadata, and service items.
+
+### PATCH /admin/packages/:id/active
+
+Protected: `ADMIN`, `OPERATIONS`. Activates or archives a package without deleting its record.
+
+### Admin booking workflow
+
+`GET /admin/bookings` and `GET /admin/bookings/:id` are protected for `ADMIN`, `OPERATIONS`, and `SUPPORT`. They return booking details, package pricing, payment totals, current team assignment, notes, and booking events.
+
+`GET /admin/team-members` returns active admin, operations, and support users who can own booking follow-up.
+
+`PATCH /admin/bookings/:id/status` accepts a `BookingStatus` value and enforces the workflow sequence. `PATCH /admin/bookings/:id/payment-status` accepts a `PaymentStatus` value and is restricted to admin, finance, and operations roles.
+
+`PATCH /admin/bookings/:id/assignment` accepts `{ "memberId": "uuid", "reason": "..." }`. Only active admin, operations, or support users can be assigned. `POST /admin/bookings/:id/notes` accepts `{ "note": "..." }`. Status changes, assignments, and notes create booking events and audit records.
+
 ## 8. Booking Endpoints
 
-### POST /bookings/request
+### POST /bookings
 
 Public or tourist protected.
 
@@ -573,31 +636,17 @@ Request:
 
 ## 11. Payment Endpoints
 
-### POST /payments/proof
+### POST /bookings/:bookingId/payment-proof
 
-Protected or public with booking token.
-
-Purpose: tourist uploads manual payment proof.
-
-Request:
-
-```json
-{
-  "bookingId": "uuid",
-  "amount": 15000,
-  "paymentMethod": "BANK_TRANSFER",
-  "referenceNumber": "TXN-12345",
-  "proofFileId": "uuid"
-}
-```
+Protected: booking owner. Accepts `multipart/form-data` with `amount`, `method`, `transactionReference`, optional `notes`, and a required `proof` file. The API validates the file type and size, uploads it to the private Supabase Storage bucket, and stores only the private storage path on the payment record.
 
 ### GET /admin/payments
 
 Protected: `ADMIN`, `FINANCE`.
 
-### PATCH /admin/payments/:id/verify
+### PATCH /admin/payments/:id/review
 
-Protected: `ADMIN`, `FINANCE`.
+Protected: `ADMIN`, `FINANCE`. Accepts `VERIFIED` or `REJECTED` plus an optional review note.
 
 ## 12. File Endpoints
 
@@ -739,7 +788,7 @@ Connect APIs in this order:
 
 1. `GET /packages`
 2. `GET /packages/:slug`
-3. `POST /bookings/request`
+3. `POST /bookings`
 4. `POST /providers/register`
 5. `GET /admin/bookings`
 6. `PATCH /admin/bookings/:id/call-confirm`
@@ -821,3 +870,33 @@ Creates a service exception instead of completing the handoff. Required fields: 
 Protected: assigned provider user.
 
 Returns only the traveler and service fields required for that provider's assignment.
+
+## Finance foundation
+
+### POST /bookings/:bookingId/payment-proof
+
+Protected: booking owner. Accepts amount, method, optional transaction reference, proof URL placeholder, and notes. Creates a `PROOF_SUBMITTED` payment record and updates the booking payment status.
+
+### GET /admin/payments
+
+Protected: `ADMIN`, `FINANCE`. Lists payment submissions for review.
+
+### PATCH /admin/payments/:paymentId/review
+
+Protected: `ADMIN`, `FINANCE`. Accepts `VERIFIED` or `REJECTED` plus an optional review note and records the reviewer audit event.
+
+### POST /admin/finance/commissions
+
+Protected: `ADMIN`, `FINANCE`. Creates a per-service commission from gross amount and rate, calculates provider settlement, and creates a pending payout.
+
+### GET /admin/finance/bookings/:bookingId
+
+Protected: `ADMIN`, `FINANCE`. Returns payment, commission, provider, and payout records for one booking.
+
+### GET /admin/payouts and PATCH /admin/payouts/:payoutId/status
+
+Protected: `ADMIN`, `FINANCE`. Payout transitions are `PENDING -> APPROVED -> PROCESSING -> PAID`; failed transfers can move `FAILED -> PROCESSING`. Invalid transitions are rejected.
+
+### GET /provider/finance
+
+Protected: `PROVIDER`. Returns only the authenticated provider's commission and payout records.

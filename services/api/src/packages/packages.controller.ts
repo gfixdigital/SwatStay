@@ -1,23 +1,11 @@
-import { Controller, Get, Param, Query } from "@nestjs/common";
+import { Controller, Get, Param } from "@nestjs/common";
+import { success } from "../common/api-response";
 import { PackagesService } from "./packages.service";
 
-@Controller("packages")
+@Controller()
 export class PackagesController {
-  constructor(private readonly packagesService: PackagesService) {}
-
-  @Get()
-  async findAll(
-    @Query("destination") destination?: string,
-    @Query("type") type?: string,
-    @Query("tier") tier?: string,
-  ) {
-    const packages = await this.packagesService.findAll({ destination, type, tier });
-    return { success: true, message: "Packages fetched successfully", data: packages };
-  }
-
-  @Get(":slug")
-  async findBySlug(@Param("slug") slug: string) {
-    const pkg = await this.packagesService.findBySlug(slug);
-    return { success: true, message: "Package fetched successfully", data: pkg };
-  }
+  constructor(private readonly packages: PackagesService) {}
+  @Get("packages") async list() { return success(await this.packages.list(), "Packages fetched successfully"); }
+  @Get("packages/:slug") async get(@Param("slug") slug: string) { return success(await this.packages.getBySlug(slug), "Package fetched successfully"); }
+  @Get("destinations") async destinations() { return success(await this.packages.destinations(), "Destinations fetched successfully"); }
 }

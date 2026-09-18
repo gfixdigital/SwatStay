@@ -1,0 +1,4 @@
+import { useEffect, useState } from "react";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { adminRequest, getAdminToken } from "../lib/adminApi";
+export function AdminGuard() { const location = useLocation(); const [checking, setChecking] = useState(true); const [valid, setValid] = useState(false); useEffect(() => { if (!getAdminToken()) { setChecking(false); return; } adminRequest<{ role: string }>("/auth/me").then((user) => setValid(["ADMIN", "OPERATIONS", "FINANCE"].includes(user.role))).catch(() => setValid(false)).finally(() => setChecking(false)); }, [location.pathname]); if (checking) return <div className="grid min-h-screen place-items-center bg-snow text-sm text-stone">Checking admin session...</div>; if (!valid) return <Navigate to="/login" replace state={{ from: location.pathname }} />; return <Outlet/>; }

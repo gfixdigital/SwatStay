@@ -1,6 +1,7 @@
 import type { TourPackage, PackageServiceDetail, Service } from "@/types/package";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+const ACCESS_TOKEN_KEY = "swatstay.auth.accessToken";
 
 type ApiPackage = {
   id: string;
@@ -35,6 +36,7 @@ const SERVICE_MAP: Record<string, Service> = {
   RESTAURANT: "Meals",
   GUIDE: "Guide",
   HIKING: "Hiking",
+  HIKING_GUIDE: "Hiking",
 };
 
 function mapServiceType(t: string): Service {
@@ -84,7 +86,7 @@ function transformPackage(pkg: ApiPackage): TourPackage {
 
 export async function fetchPackages(): Promise<TourPackage[]> {
   try {
-    const res = await fetch(`${API_URL}/packages`, {
+    const res = await fetch(`${API_BASE_URL}/packages`, {
       next: { revalidate: 300 },
     });
     if (!res.ok) return [];
@@ -96,11 +98,9 @@ export async function fetchPackages(): Promise<TourPackage[]> {
   }
 }
 
-export async function fetchPackageBySlug(
-  slug: string,
-): Promise<TourPackage | null> {
+export async function fetchPackageBySlug(slug: string): Promise<TourPackage | null> {
   try {
-    const res = await fetch(`${API_URL}/packages/${slug}`, {
+    const res = await fetch(`${API_BASE_URL}/packages/${slug}`, {
       next: { revalidate: 300 },
     });
     if (!res.ok) return null;
@@ -112,11 +112,9 @@ export async function fetchPackageBySlug(
   }
 }
 
-export async function fetchDestinations(): Promise<
-  { name: string; slug: string }[]
-> {
+export async function fetchDestinations(): Promise<{ name: string; slug: string }[]> {
   try {
-    const res = await fetch(`${API_URL}/destinations`, {
+    const res = await fetch(`${API_BASE_URL}/destinations`, {
       next: { revalidate: 300 },
     });
     if (!res.ok) return [];
@@ -133,39 +131,37 @@ export async function fetchDestinations(): Promise<
 
 export type BookingPayload = {
   fullName: string;
-  email?: string;
-  phone?: string;
-  whatsapp?: string;
-  country?: string;
-  destination?: string;
-  travelStart?: string;
-  travelEnd?: string;
-  travelersCount?: number;
-  travelerType?: string;
-  tier?: string;
-  pickupCity?: string;
-  specialRequests?: string;
-  preferredPaymentMethod?: string;
-  preferredLanguage?: string;
+  email: string;
+  phone: string;
+  destination: string;
+  travelStart: string;
+  travelEnd: string;
+  travelersCount: number;
+  pickupCity: string;
   packageSlug?: string;
-  packageTitle?: string;
-  consentAccepted: boolean;
+  consent: boolean;
+  preferredLanguage?: string;
+  specialRequests?: string;
 };
 
 export async function submitBookingRequest(
   payload: BookingPayload,
 ): Promise<{ success: boolean; reference?: string; error?: string }> {
   try {
-    const res = await fetch(`${API_URL}/bookings/request`, {
+    const token = typeof window !== "undefined" ? localStorage.getItem(ACCESS_TOKEN_KEY) : null;
+    const res = await fetch(`${API_BASE_URL}/bookings`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body: JSON.stringify(payload),
     });
     const json = await res.json();
     if (!res.ok) {
       return {
         success: false,
-        error: json.message || "Something went wrong",
+        error: Array.isArray(json.message) ? json.message.join(" ") : (json.message || "Something went wrong"),
       };
     }
     return {
@@ -175,4 +171,69 @@ export async function submitBookingRequest(
   } catch {
     return { success: false, error: "Network error. Please try again." };
   }
+}
+
+export async function createBooking(input: Record<string, unknown>) {
+  const token = typeof window !== "undefined" ? localStorage.getItem(ACCESS_TOKEN_KEY) : null;
+  const response = await fetch(`${API_BASE_URL}/bookings`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify(input),
+  });
+  const body = await response.json().catch(() => null) as { message?: string; data?: unknown } | null;
+  if (!response.ok) throw new Error(Array.isArray(body?.message) ? body.message.join(" ") : body?.message ?? "We could not submit your booking request.");
+  return body?.data;
+}
+
+export async function loginAccount(email: string, password: string) {
+  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const body = await response.json().catch(() => null) as { message?: string; accessToken?: string; refreshToken?: string; user?: { fullName?: string; email?: string; role?: string } } | null;
+  if (!response.ok || !body?.accessToken) throw new Error(body?.message ?? "Unable to log in");
+  return body;
+}
+
+export async function signupAccount(input: Record<string, unknown>) {
+  const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const body = await response.json().catch(() => null) as { message?: string; accessToken?: string; refreshToken?: string; user?: { fullName?: string; email?: string; role?: string } } | null;
+  if (!response.ok || !body?.accessToken) throw new Error(body?.message ?? "Unable to create account");
+  return body;
+}
+
+export async function getMyBookings<T = unknown>() {
+  const token = typeof window !== "undefined" ? localStorage.getItem(ACCESS_TOKEN_KEY) : null;
+  if (!token) return [] as T[];
+  const response = await fetch(`${API_BASE_URL}/users/me/bookings`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  const body = await response.json().catch(() => null) as { message?: string; data?: T[] } | null;
+  if (!response.ok) throw new Error(body?.message ?? "Unable to load bookings");
+  return body?.data ?? [] as T[];
+}
+
+export async function submitPaymentProof(bookingId: string, input: { amount: number; method: string; transactionReference: string; file: File; notes?: string }) {
+  const token = typeof window !== "undefined" ? localStorage.getItem(ACCESS_TOKEN_KEY) : null;
+  if (!token) throw new Error("Please log in before submitting payment proof.");
+  const form = new FormData();
+  form.append("amount", String(input.amount));
+  form.append("method", input.method);
+  form.append("transactionReference", input.transactionReference);
+  if (input.notes) form.append("notes", input.notes);
+  form.append("proof", input.file);
+  const response = await fetch(`${API_BASE_URL}/bookings/${bookingId}/payment-proof`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  const body = await response.json().catch(() => null) as { message?: string; data?: unknown } | null;
+  if (!response.ok) throw new Error(body?.message ?? "Unable to submit payment proof");
+  return body?.data;
 }

@@ -11,6 +11,11 @@ The following fields are now represented in the traveler/admin interfaces and mu
 - `support_messages`: ticket ID, author ID, audience (`traveler` or `internal`), message body, attachments, delivered/read timestamps.
 - `support_transfers`: ticket ID, previous assignee, next assignee, actor, reason, transferred at.
 - `booking_events`: booking ID, event type, actor, payload, created at for the traveler timeline and admin audit history.
+- `contact_submissions`: public contact form details, consent, status, and timestamps.
+- `custom_trip_requests`: traveler preferences, dates, pickup city, budget, consent, status, and timestamps.
+- `provider_registrations`: provider business details, service category, consent, review status, and timestamps.
+- `support_tickets` and `support_messages`: authenticated support conversations, issue type, status, audience, and timestamps.
+- `audit_logs`: actor, action, entity, metadata, and timestamp for operational intake events.
 
 The API must authorize every action and publish only traveler-visible messages/events to the traveler dashboard. Internal notes, finance evidence, provider commission, and payout information must never be exposed to travelers.
 
@@ -658,6 +663,10 @@ Voucher service statuses: `READY`, `COMPLETED`, `ISSUE_REPORTED`, `CANCELLED`.
 Scan results: `ACCEPTED`, `ALREADY_COMPLETED`, `EXPIRED`, `REVOKED`, `WRONG_PROVIDER`, `SERVICE_NOT_ASSIGNED`, `MANUAL_REVIEW_REQUIRED`.
 
 The tourist can see one trip QR. The API resolves the scanning provider account to its assigned `ServiceVoucherItem`, so hotel, transport, guide, restaurant, and activity handoffs remain separate without asking the tourist to manage multiple codes.
+
+## Catalog fields implemented in the backend
+
+The `Package` record now also stores `packageType`, `tier`, `route`, `imageUrl`, `gallery`, `itinerary`, `cancellationSummary`, `seoTitle`, and `seoDescription`. `PackageItem` stores the included service type, title, and description. Destination records store short/full descriptions, best-for and travel-time guidance, popular services, media references, and SEO metadata. Catalog changes are restricted to admin and operations roles and are audit logged.
 
 Provider delivery must be service-scoped. It may include booking reference, tourist display name, party size, service schedule, pickup or arrival location, language, and service-specific notes. It must exclude CNIC, passport, payment proof, unrelated provider assignments, and internal admin notes.
 
