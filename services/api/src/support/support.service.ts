@@ -1,4 +1,5 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../database/prisma.service";
 import { AuditService } from "../common/audit.service";
 import { CreateMessageDto } from "./dto/create-message.dto";
@@ -22,6 +23,27 @@ export class SupportService {
     if (ticket.userId !== userId) throw new ForbiddenException("You cannot access this support ticket");
     const message = await this.prisma.supportMessage.create({ data: { ticketId, authorId: userId, body: input.body, audience: "TRAVELER" } });
     await this.prisma.supportTicket.update({ where: { id: ticketId }, data: { status: "OPEN" } });
+    return message;
+  }
+
+  async adminList() {
+    return this.prisma.supportTicket.findMany({ include: { user: true, messages: { include: { author: true }, orderBy: { createdAt: "asc" } } }, orderBy: { updatedAt: "desc" } });
+  }
+
+  async adminUpdate(actorId: string, ticketId: string, input: { status?: string; assignedTo?: string | null }) {
+    const ticket = await this.prisma.supportTicket.findUnique({ where: { id: ticketId } });
+    if (!ticket) throw new NotFoundException("Support ticket not found");
+    const updated = await this.prisma.supportTicket.update({ where: { id: ticketId }, data: { status: input.status, assignedTo: input.assignedTo } });
+    await this.audit.record("SUPPORT_TICKET_UPDATED", "SupportTicket", ticketId, actorId, input as Prisma.InputJsonValue);
+    return updated;
+  }
+
+  async adminMessage(actorId: string, ticketId: string, input: CreateMessageDto) {
+    const ticket = await this.prisma.supportTicket.findUnique({ where: { id: ticketId } });
+    if (!ticket) throw new NotFoundException("Support ticket not found");
+    const message = await this.prisma.supportMessage.create({ data: { ticketId, authorId: actorId, body: input.body, audience: input.audience ?? "TRAVELER" }, include: { author: true } });
+    await this.prisma.supportTicket.update({ where: { id: ticketId }, data: { status: "IN_PROGRESS" } });
+    await this.audit.record("SUPPORT_MESSAGE_SENT", "SupportTicket", ticketId, actorId, { audience: message.audience });
     return message;
   }
 }
