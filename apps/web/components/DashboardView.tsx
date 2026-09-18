@@ -78,6 +78,7 @@ export function DashboardView() {
   const [supportOpen, setSupportOpen] = useState(false);
   const [paymentProofStatus, setPaymentProofStatus] = useState<PaymentProofStatus>("Proof submitted");
   const [liveBooking, setLiveBooking] = useState<LiveTravelerBooking | null>(null);
+  const [loadingBooking, setLoadingBooking] = useState(true);
   const [supportStatus, setSupportStatus] = useState("SUP-82 · Meal preference · Open");
   const [lastUpdated, setLastUpdated] = useState("Not refreshed yet");
   const [services, setServices] = useState<Service[]>([
@@ -86,9 +87,10 @@ export function DashboardView() {
     { id: "guide", title: "Ushu Forest guide", provider: "Naveed Khan · Local guide", detail: "Day 2 · 09:30", status: "Pending", icon: <Mountain size={18}/> },
     { id: "meals", title: "Breakfast and dinner", provider: "Kalam View Guesthouse", detail: "Included in stay", status: "Ready", icon: <Utensils size={18}/> },
   ]);
-  useEffect(() => { getMyBookings<LiveTravelerBooking>().then((items) => setLiveBooking(items[0] ?? null)).catch(() => undefined); }, []);
+  useEffect(() => { getMyBookings<LiveTravelerBooking>().then((items) => setLiveBooking(items[0] ?? null)).catch(() => undefined).finally(() => setLoadingBooking(false)); }, []);
 
-  if (ready && traveler && !traveler.hasDemoTrip) return <NewTravelerDashboard name={traveler.name}/>;
+  if (ready && !traveler) return <NewTravelerDashboard name="Traveler"/>;
+  if (ready && traveler && !loadingBooking && !liveBooking) return <NewTravelerDashboard name={traveler.name}/>;
 
   function demoCheckIn() {
     setCheckedIn(true);
