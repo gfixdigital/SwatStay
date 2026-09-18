@@ -43,4 +43,19 @@ export class SupabaseStorageService {
     if (error) throw new ServiceUnavailableException(`Unable to create file preview link: ${error.message}`);
     return data.signedUrl;
   }
+
+  async listMedia() {
+    if (!this.client) throw new ServiceUnavailableException("Secure file storage is not configured yet.");
+    const { data, error } = await this.client.storage.from(this.bucket).list("media", { limit: 100, sortBy: { column: "created_at", order: "desc" } });
+    if (error) throw new ServiceUnavailableException(`Unable to list media: ${error.message}`);
+    return Promise.all((data ?? []).filter((item) => item.id).map(async (item) => { const path = `media/${item.name}`; return { id: path, name: item.name, path, size: item.metadata?.size ?? 0, mimeType: item.metadata?.mimetype ?? "application/octet-stream", createdAt: item.created_at, url: await this.createSignedUrl(path) }; }));
+  }
+
+  async delete(path: string) {
+    if (!this.client) throw new ServiceUnavailableException("Secure file storage is not configured yet.");
+    if (!path.startsWith("media/")) throw new ServiceUnavailableException("Only media files can be deleted from this endpoint.");
+    const { error } = await this.client.storage.from(this.bucket).remove([path]);
+    if (error) throw new ServiceUnavailableException(`Unable to delete media: ${error.message}`);
+    return { path };
+  }
 }
