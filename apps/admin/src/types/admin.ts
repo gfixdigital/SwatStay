@@ -118,7 +118,7 @@ export type TeamMember = {
   activeQueue: number;
 };
 
-export type AdminPackage = { id: string; title: string; slug: string; description: string; destination: string; packageType: string; tier: string; days: number; nights: number; price: number; currency: string; services: string[]; itinerary: string[]; addOns: string[]; cancellationSummary: string; coverImage: string; galleryImages: string[]; status: "Active" | "Inactive"; seoTitle: string; seoDescription: string; };
+export type AdminPackage = { id: string; title: string; slug: string; description: string; destination: string; destinationId?: string; packageType: string; tier: string; days: number; nights: number; price: number; currency: string; services: string[]; itinerary: string[]; addOns: string[]; cancellationSummary: string; coverImage: string; galleryImages: string[]; status: "Active" | "Inactive"; seoTitle: string; seoDescription: string; };
 export type DestinationAdmin = { id: string; name: string; slug: string; shortDescription: string; fullDescription: string; bestFor: string; travelTime: string; popularServices: string[]; coverImage: string; galleryImages: string[]; status: "Active" | "Inactive"; seoTitle: string; seoDescription: string; };
 export type CommissionRecord = { id: string; bookingReference: string; serviceType: ServiceType; provider: string; grossAmount: number; commissionRate: number; commissionAmount: number; status: "Pending" | "Recorded" | "Cleared"; date: string; };
 export type PayoutRecord = { id: string; provider: string; amount: number; pendingBalance: number; paidAmount: number; method: string; status: "Pending" | "Processing" | "Paid"; note: string; };

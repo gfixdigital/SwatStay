@@ -11,6 +11,7 @@ import { StatusBadge } from "../components/StatusBadge";
 import { adminPackages as initialPackages } from "../data/packages";
 import { formatPkr } from "../data/adminData";
 import type { AdminPackage } from "../types/admin";
+import { adminRequest, getAdminToken } from "../lib/adminApi";
 
 const steps = ["Basic info", "Pricing", "Services", "Itinerary", "Images", "SEO", "Preview"] as const;
 const serviceOptions = ["Hotel", "Transport", "Private transport", "Breakfast", "Meals", "Guide", "Hiking guide", "Photography", "Activity"];
@@ -25,6 +26,9 @@ export function PackagesPage() {
   const [editing, setEditing] = useState<AdminPackage | null>(null);
   const [preview, setPreview] = useState<AdminPackage | null>(null);
   const [toast, setToast] = useState("");
+  const [destinationIds, setDestinationIds] = useState<Record<string, string>>({});
+
+  useEffect(() => { if (!getAdminToken()) return; Promise.all([adminRequest<Array<{ id: string; name: string }>>("/admin/destinations"), adminRequest<Array<{ id: string; name: string; slug: string; summary?: string | null; destination: { name: string; id: string }; packageType?: string; tier?: string; durationDays: number; basePrice: number; currency: string; items: { serviceType: string; title: string }[]; isActive: boolean; cancellationSummary?: string | null; imageUrl?: string | null; gallery?: string[] | null; itinerary?: { description?: string }[] | null; seoTitle?: string | null; seoDescription?: string | null }>>("/admin/packages")]).then(([destinations, livePackages]) => { setDestinationIds(Object.fromEntries(destinations.map((item) => [item.name, item.id]))); if (livePackages.length) setPackages(livePackages.map(mapApiPackage)); }).catch((reason: unknown) => setToast(reason instanceof Error ? reason.message : "Could not load the live catalog.")); }, []);
 
   const visible = useMemo(() => packages.filter((item) => (!search || `${item.title} ${item.slug}`.toLowerCase().includes(search.toLowerCase())) && (status === "All" || item.status === status) && (destination === "All" || item.destination === destination)), [packages, search, status, destination]);
 
@@ -34,10 +38,9 @@ export function PackagesPage() {
     setPackages((current) => [...current, { ...clonePackage(item), id: `pkg-${Date.now()}`, title: `${item.title} Copy`, slug: `${item.slug}-copy-${suffix}`, status: "Inactive" }]);
     setToast(`${item.title} duplicated as an inactive package.`);
   }
-  function savePackage(item: AdminPackage) {
-    setPackages((current) => editing ? current.map((entry) => entry.id === item.id ? item : entry) : [...current, item]);
-    setEditorOpen(false);
-    setToast(`${item.title} ${editing ? "updated" : "created"} in frontend state.`);
+  async function savePackage(item: AdminPackage) {
+    if (getAdminToken()) { const destinationId = item.destinationId ?? destinationIds[item.destination]; if (!destinationId) { setToast("Choose a destination that exists in the live catalog."); return; } const payload = { name: item.title, slug: item.slug, destinationId, summary: item.description, packageType: item.packageType, tier: item.tier, route: item.destination, durationDays: item.days, basePrice: item.price, currency: item.currency, imageUrl: item.coverImage || undefined, gallery: item.galleryImages, itinerary: item.itinerary.map((description, index) => ({ day: `Day ${index + 1}`, description })), cancellationSummary: item.cancellationSummary, seoTitle: item.seoTitle, seoDescription: item.seoDescription, items: item.services.map((service) => ({ serviceType: serviceToApi(service), title: service, description: `${service} arrangement confirmed by the GFix team.` })) }; try { const saved = editing ? await adminRequest<typeof item>(`/admin/packages/${item.id}`, { method: "PATCH", body: JSON.stringify(payload) }) : await adminRequest<typeof item>("/admin/packages", { method: "POST", body: JSON.stringify(payload) }); const next = { ...item, id: (saved as { id?: string }).id ?? item.id, destinationId }; setPackages((current) => editing ? current.map((entry) => entry.id === item.id ? next : entry) : [...current, next]); setEditorOpen(false); setToast(`${item.title} ${editing ? "updated" : "created"} in the live catalog.`); } catch (reason) { setToast(reason instanceof Error ? reason.message : "Could not save the package."); } return; }
+    setPackages((current) => editing ? current.map((entry) => entry.id === item.id ? item : entry) : [...current, item]); setEditorOpen(false); setToast(`${item.title} ${editing ? "updated" : "created"} in frontend state.`);
   }
   function toggleStatus(item: AdminPackage) {
     const next = item.status === "Active" ? "Inactive" : "Active";
@@ -122,3 +125,5 @@ function lines(value: string) { return value.split("\n").map((line) => line.trim
 function slugify(value: string) { return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
 function clonePackage(item: AdminPackage): AdminPackage { return { ...item, services: [...item.services], itinerary: [...item.itinerary], addOns: [...item.addOns], galleryImages: [...item.galleryImages] }; }
 function blankPackage(): AdminPackage { return { ...clonePackage(initialPackages[0]), id: `pkg-${Date.now()}`, title: "", slug: "", description: "", destination: "Kalam", packageType: "Couple", tier: "Standard", days: 3, nights: 2, price: 0, currency: "PKR", services: [], itinerary: ["", "", ""], addOns: [], cancellationSummary: "", coverImage: "", galleryImages: [], status: "Inactive", seoTitle: "", seoDescription: "" }; }
+function serviceToApi(service: string) { if (service.toLowerCase().includes("hotel")) return "HOTEL"; if (service.toLowerCase().includes("transport")) return "TRANSPORT"; if (service.toLowerCase().includes("hiking")) return "HIKING_GUIDE"; if (service.toLowerCase().includes("guide")) return "GUIDE"; if (service.toLowerCase().includes("meal") || service.toLowerCase().includes("breakfast")) return "RESTAURANT"; if (service.toLowerCase().includes("photo")) return "PHOTOGRAPHY"; return "ACTIVITY"; }
+function mapApiPackage(item: { id: string; name: string; slug: string; summary?: string | null; destination: { name: string; id: string }; packageType?: string; tier?: string; durationDays: number; basePrice: number; currency: string; items: { serviceType: string; title: string }[]; isActive: boolean; cancellationSummary?: string | null; imageUrl?: string | null; gallery?: string[] | null; itinerary?: { description?: string }[] | null; seoTitle?: string | null; seoDescription?: string | null }): AdminPackage { return { id: item.id, title: item.name, slug: item.slug, description: item.summary ?? "", destination: item.destination.name, destinationId: item.destination.id, packageType: item.packageType ?? "Private", tier: item.tier ?? "Standard", days: item.durationDays, nights: Math.max(0, item.durationDays - 1), price: item.basePrice, currency: item.currency, services: item.items.map((entry) => entry.title), itinerary: (item.itinerary ?? []).map((entry) => entry.description ?? ""), addOns: [], cancellationSummary: item.cancellationSummary ?? "", coverImage: item.imageUrl ?? "", galleryImages: item.gallery ?? [], status: item.isActive ? "Active" : "Inactive", seoTitle: item.seoTitle ?? "", seoDescription: item.seoDescription ?? "" }; }
