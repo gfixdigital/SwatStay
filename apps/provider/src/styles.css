@@ -11,6 +11,118 @@ body {
   margin: 0;
   background: #f8faf7;
 }
+.auth-shell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  background: #f8faf7;
+}
+.auth-card {
+  width: min(100%, 470px);
+  border: 1px solid #d7e1da;
+  border-radius: 8px;
+  background: #fff;
+  padding: 30px;
+  box-shadow: 0 18px 45px rgba(18, 55, 42, 0.08);
+}
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 34px;
+}
+.auth-brand strong {
+  display: block;
+  color: #12372a;
+  font-size: 21px;
+}
+.auth-brand strong span {
+  color: #1f7692;
+}
+.auth-brand small {
+  display: block;
+  margin-top: 2px;
+  color: #688075;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+}
+.auth-card h1 {
+  max-width: 380px;
+  margin: 8px 0 10px;
+  color: #12372a;
+  font-size: clamp(28px, 5vw, 38px);
+  line-height: 1.08;
+}
+.auth-card > .muted {
+  margin: 0;
+  line-height: 1.65;
+}
+.auth-form {
+  display: grid;
+  gap: 15px;
+  margin-top: 24px;
+}
+.auth-form label {
+  display: grid;
+  gap: 7px;
+  color: #385346;
+  font-size: 13px;
+  font-weight: 750;
+}
+.auth-form input {
+  width: 100%;
+  border: 1px solid #cbd9d0;
+  border-radius: 6px;
+  background: #fbfdfb;
+  padding: 12px 13px;
+  color: #17211b;
+  outline: none;
+}
+.auth-form input:focus {
+  border-color: #1f7692;
+  box-shadow: 0 0 0 3px rgba(31, 118, 146, 0.12);
+}
+.auth-error {
+  margin: 0;
+  border: 1px solid #e9c8c3;
+  border-radius: 6px;
+  background: #fff5f3;
+  padding: 10px 12px;
+  color: #9b3c31;
+  font-size: 13px;
+}
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 24px 0 14px;
+  color: #789083;
+  font-size: 11px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: #d7e1da;
+}
+.auth-preview {
+  width: 100%;
+  justify-content: center;
+}
+.auth-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 18px 0 0;
+  color: #688075;
+  font-size: 11px;
+}
 button,
 input,
 select {

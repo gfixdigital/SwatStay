@@ -1,4 +1,4 @@
-import { StrictMode, useEffect, useMemo, useState } from "react";
+import { StrictMode, useEffect, useMemo, useState, type FormEvent } from "react";
 import { createRoot } from "react-dom/client";
 import {
   Activity,
@@ -80,7 +80,10 @@ type LiveAssignment = { id: string; serviceType: string; status: string; provide
 
 const API_BASE_URL = "http://localhost:4000/api/v1";
 const PROVIDER_TOKEN_KEY = "swatstay.provider.accessToken";
+const PROVIDER_REFRESH_KEY = "swatstay.provider.refreshToken";
 function getProviderToken() { return window.localStorage.getItem(PROVIDER_TOKEN_KEY); }
+function saveProviderSession(accessToken: string, refreshToken: string) { window.localStorage.setItem(PROVIDER_TOKEN_KEY, accessToken); window.localStorage.setItem(PROVIDER_REFRESH_KEY, refreshToken); }
+function clearProviderSession() { window.localStorage.removeItem(PROVIDER_TOKEN_KEY); window.localStorage.removeItem(PROVIDER_REFRESH_KEY); }
 function serviceKind(serviceType: string): Kind { return ({ HOTEL: "Hotel", TRANSPORT: "Transport", GUIDE: "Tour guide", HIKING_GUIDE: "Tour guide", RESTAURANT: "Restaurant", PHOTOGRAPHY: "Photographer", ACTIVITY: "Activity provider" } as Record<string, Kind>)[serviceType] ?? "Activity provider"; }
 function assignmentStatus(status: string): Status { return status === "ACCEPTED" ? "Accepted" : status === "REJECTED" ? "Declined" : "Awaiting response"; }
 function mapLiveAssignment(item: LiveAssignment, providerId: string): Assignment { const date = new Date(item.booking.travelStart); return { id: item.id, providerId, reference: item.booking.reference, date: date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }), time: "Confirm with GFix", travelers: item.booking.travelersCount, service: `${serviceKind(item.serviceType)} service for ${item.booking.destination}`, resource: `${item.booking.pickupCity} coordination`, request: item.booking.specialRequests ?? "No additional request recorded.", status: assignmentStatus(item.status) }; }
@@ -283,6 +286,37 @@ function playProviderTone() {
 }
 
 function App() {
+  const [mode, setMode] = useState<"login" | "preview" | "live">(() => getProviderToken() ? "live" : "login");
+  if (mode === "login") return <ProviderLogin onLogin={() => setMode("live")} onPreview={() => setMode("preview")} />;
+  return <DashboardApp onLogout={() => { clearProviderSession(); setMode("login"); }} />;
+}
+
+function ProviderLogin({ onLogin, onPreview }: { onLogin: () => void; onPreview: () => void }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
+      const body = await response.json().catch(() => null) as { message?: string; accessToken?: string; refreshToken?: string; user?: { role?: string } } | null;
+      if (!response.ok) throw new Error(body?.message ?? "Unable to sign in");
+      if (body?.user?.role !== "PROVIDER" || !body.accessToken || !body.refreshToken) throw new Error("This account does not have provider access.");
+      saveProviderSession(body.accessToken, body.refreshToken);
+      onLogin();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Unable to sign in");
+    } finally {
+      setLoading(false);
+    }
+  }
+  return <main className="auth-shell"><section className="auth-card"><div className="auth-brand"><span className="brand-mark"><Hotel size={18} /></span><div><strong>Swat<span>Stay</span></strong><small>PROVIDER PORTAL</small></div></div><p className="eyebrow">PROVIDER OPERATIONS</p><h1>Sign in to your service workspace</h1><p className="muted">Review assignments, respond to GFix Operations, and manage only the services assigned to your business.</p><form onSubmit={submit} className="auth-form"><label>Email address<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="provider@example.com" /></label><label>Password<input required type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" /></label>{error && <p className="auth-error" role="alert">{error}</p>}<button className="primary-button" disabled={loading}>{loading ? "Signing in..." : "Sign in"}</button></form><div className="auth-divider"><span>Frontend preview</span></div><button className="outline-button auth-preview" onClick={onPreview}>Continue with preview workspace</button><p className="auth-meta"><ShieldCheck size={14} /> Provider access is limited to assigned service information.</p></section></main>;
+}
+
+function DashboardApp({ onLogout }: { onLogout: () => void }) {
   const [view, setView] = useState<View>("overview");
   const [menuOpen, setMenuOpen] = useState(false);
   const [providerId, setProviderId] = useState("hotel");
@@ -437,6 +471,7 @@ function App() {
             <button className="outline-button" onClick={() => open("support")}>
               <LifeBuoy size={15} /> GFix support
             </button>
+            {liveProvider && <button className="outline-button" onClick={onLogout}>Sign out</button>}
           </div>
         </header>
         {!liveProvider && <section className="notice">
