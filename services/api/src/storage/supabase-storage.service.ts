@@ -37,7 +37,7 @@ export class SupabaseStorageService {
     return path;
   }
 
-  async createSignedUrl(path: string, expiresIn = 600) {
+  async createSignedUrl(path: string | null, expiresIn = 600) {
     if (!this.client || !path) return null;
     const { data, error } = await this.client.storage.from(this.bucket).createSignedUrl(path, expiresIn);
     if (error) throw new ServiceUnavailableException(`Unable to create file preview link: ${error.message}`);

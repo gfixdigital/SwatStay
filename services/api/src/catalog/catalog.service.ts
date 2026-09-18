@@ -4,10 +4,31 @@ import { PrismaService } from "../database/prisma.service";
 import { AuditService } from "../common/audit.service";
 import { CreateDestinationDto } from "./dto/create-destination.dto";
 import { CreatePackageDto } from "./dto/create-package.dto";
+import { SupabaseStorageService } from "../storage/supabase-storage.service";
 
 @Injectable()
 export class CatalogService {
-  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService) {}
+  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly storage: SupabaseStorageService) {}
+
+  async getProviderMedia(providerId: string) {
+    const provider = await this.prisma.provider.findUnique({ where: { id: providerId }, select: { id: true, media: true } });
+    if (!provider) throw new NotFoundException("Provider not found");
+    const media = this.normalizeProviderMedia(provider.media);
+    return { ...media, coverImageUrl: await this.storage.createSignedUrl(media.coverImage), galleryUrls: await Promise.all(media.gallery.map((path) => this.storage.createSignedUrl(path))), documentUrls: await Promise.all(media.documents.map((path) => this.storage.createSignedUrl(path))) };
+  }
+
+  async updateProviderMedia(actorId: string, providerId: string, input: { coverImage?: string | null; gallery?: string[]; documents?: string[] }) {
+    const provider = await this.prisma.provider.findUnique({ where: { id: providerId }, select: { id: true } });
+    if (!provider) throw new NotFoundException("Provider not found");
+    const media = { coverImage: input.coverImage ?? null, gallery: input.gallery ?? [], documents: input.documents ?? [] };
+    const invalid = [media.coverImage, ...media.gallery, ...media.documents].filter((path): path is string => Boolean(path)).some((path) => !path.startsWith("media/"));
+    if (invalid) throw new BadRequestException("Provider media must come from the private media library");
+    const updated = await this.prisma.provider.update({ where: { id: providerId }, data: { media: media as Prisma.InputJsonValue }, select: { id: true, media: true } });
+    await this.audit.record("PROVIDER_MEDIA_UPDATED", "Provider", providerId, actorId, media as Prisma.InputJsonValue);
+    return this.getProviderMedia(updated.id);
+  }
+
+  private normalizeProviderMedia(value: unknown) { const media = value && typeof value === "object" ? value as { coverImage?: unknown; gallery?: unknown; documents?: unknown } : {}; return { coverImage: typeof media.coverImage === "string" ? media.coverImage : null, gallery: Array.isArray(media.gallery) ? media.gallery.filter((path): path is string => typeof path === "string") : [], documents: Array.isArray(media.documents) ? media.documents.filter((path): path is string => typeof path === "string") : [] }; }
 
   listDestinations() { return this.prisma.destination.findMany({ orderBy: { name: "asc" } }); }
 
