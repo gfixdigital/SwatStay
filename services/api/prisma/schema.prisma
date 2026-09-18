@@ -127,6 +127,15 @@ model Destination {
   name String
   slug String @unique
   description String?
+  shortDescription String?
+  fullDescription String?
+  bestFor String[]
+  travelTime String?
+  popularServices Json?
+  imageUrl String?
+  gallery Json?
+  seoTitle String?
+  seoDescription String?
   isActive Boolean @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

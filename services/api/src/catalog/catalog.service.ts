@@ -14,10 +14,13 @@ export class CatalogService {
   async createDestination(actorId: string, input: CreateDestinationDto) {
     const exists = await this.prisma.destination.findUnique({ where: { slug: input.slug } });
     if (exists) throw new BadRequestException("Destination slug already exists");
-    const destination = await this.prisma.destination.create({ data: input });
+    const destination = await this.prisma.destination.create({ data: this.destinationData(input) });
     await this.audit.record("DESTINATION_CREATED", "Destination", destination.id, actorId, { slug: destination.slug });
     return destination;
   }
+
+  async updateDestination(actorId: string, id: string, input: CreateDestinationDto) { const existing = await this.prisma.destination.findUnique({ where: { id } }); if (!existing) throw new NotFoundException("Destination not found"); const duplicate = await this.prisma.destination.findFirst({ where: { slug: input.slug, NOT: { id } } }); if (duplicate) throw new BadRequestException("Destination slug already exists"); const destination = await this.prisma.destination.update({ where: { id }, data: this.destinationData(input) }); await this.audit.record("DESTINATION_UPDATED", "Destination", id, actorId, { slug: destination.slug }); return destination; }
+  async setDestinationActive(actorId: string, id: string, isActive: boolean) { const destination = await this.prisma.destination.update({ where: { id }, data: { isActive } }); await this.audit.record(isActive ? "DESTINATION_ACTIVATED" : "DESTINATION_ARCHIVED", "Destination", id, actorId); return destination; }
 
   listPackages() { return this.prisma.package.findMany({ include: { destination: true, items: true }, orderBy: { createdAt: "desc" } }); }
 
@@ -44,4 +47,5 @@ export class CatalogService {
   async setActive(actorId: string, id: string, isActive: boolean) { const pkg = await this.prisma.package.update({ where: { id }, data: { isActive }, include: { destination: true, items: true } }); await this.audit.record(isActive ? "PACKAGE_ACTIVATED" : "PACKAGE_ARCHIVED", "Package", id, actorId); return pkg; }
 
   private packageData(input: CreatePackageDto) { return { name: input.name, slug: input.slug, summary: input.summary, packageType: input.packageType ?? "Private", tier: input.tier ?? "Standard", route: input.route, durationDays: input.durationDays, basePrice: input.basePrice, currency: input.currency ?? "PKR", imageUrl: input.imageUrl, gallery: input.gallery as Prisma.InputJsonValue | undefined, itinerary: input.itinerary as Prisma.InputJsonValue | undefined, cancellationSummary: input.cancellationSummary, seoTitle: input.seoTitle, seoDescription: input.seoDescription }; }
+  private destinationData(input: CreateDestinationDto) { const bestFor = Array.isArray(input.bestFor) ? input.bestFor : input.bestFor ? input.bestFor.split(",").map((value) => value.trim()).filter(Boolean) : undefined; return { name: input.name, slug: input.slug, description: input.description, shortDescription: input.shortDescription, fullDescription: input.fullDescription, bestFor, travelTime: input.travelTime, popularServices: input.popularServices as Prisma.InputJsonValue | undefined, imageUrl: input.imageUrl, gallery: input.gallery as Prisma.InputJsonValue | undefined, seoTitle: input.seoTitle, seoDescription: input.seoDescription }; }
 }

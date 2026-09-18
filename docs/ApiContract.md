@@ -305,6 +305,16 @@ Protected: `ADMIN`, `OPERATIONS`. Returns the destination catalog for package ed
 
 Protected: `ADMIN`, `OPERATIONS`. Creates a destination with a unique lowercase slug.
 
+The payload may include `description`, `shortDescription`, `fullDescription`, `bestFor`, `travelTime`, `popularServices`, `imageUrl`, `gallery`, `seoTitle`, and `seoDescription`.
+
+### PATCH /admin/destinations/:id
+
+Protected: `ADMIN`, `OPERATIONS`. Updates destination content, media references, and SEO metadata. The change is recorded in the audit log.
+
+### PATCH /admin/destinations/:id/active
+
+Protected: `ADMIN`, `OPERATIONS`. Body: `{ "isActive": true|false }`. Activates or archives a destination and records the change in the audit log.
+
 ### GET /admin/packages
 
 Protected: `ADMIN`, `OPERATIONS`. Returns active and inactive packages with destination and included service items.

@@ -664,9 +664,9 @@ Scan results: `ACCEPTED`, `ALREADY_COMPLETED`, `EXPIRED`, `REVOKED`, `WRONG_PROV
 
 The tourist can see one trip QR. The API resolves the scanning provider account to its assigned `ServiceVoucherItem`, so hotel, transport, guide, restaurant, and activity handoffs remain separate without asking the tourist to manage multiple codes.
 
-## Package catalog fields implemented in the backend
+## Catalog fields implemented in the backend
 
-The `Package` record now also stores `packageType`, `tier`, `route`, `imageUrl`, `gallery`, `itinerary`, `cancellationSummary`, `seoTitle`, and `seoDescription`. `PackageItem` stores the included service type, title, and description. Package catalog changes are restricted to admin and operations roles and are audit logged.
+The `Package` record now also stores `packageType`, `tier`, `route`, `imageUrl`, `gallery`, `itinerary`, `cancellationSummary`, `seoTitle`, and `seoDescription`. `PackageItem` stores the included service type, title, and description. Destination records store short/full descriptions, best-for and travel-time guidance, popular services, media references, and SEO metadata. Catalog changes are restricted to admin and operations roles and are audit logged.
 
 Provider delivery must be service-scoped. It may include booking reference, tourist display name, party size, service schedule, pickup or arrival location, language, and service-specific notes. It must exclude CNIC, passport, payment proof, unrelated provider assignments, and internal admin notes.
 
