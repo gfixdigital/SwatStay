@@ -12,7 +12,7 @@ import { CommissionDto } from "./dto/commission.dto";
 import { PayoutStatusDto } from "./dto/payout-status.dto";
 
 type RequestWithUser = { user: AuthenticatedUser };
-const financeRoles = [UserRole.ADMIN, UserRole.FINANCE];
+const financeRoles = [UserRole.ADMIN, UserRole.FINANCE, UserRole.OPERATIONS];
 
 @Controller()
 export class FinanceController {

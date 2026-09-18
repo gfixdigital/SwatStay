@@ -18,4 +18,6 @@ export class UsersService {
     if (input.country !== undefined) await this.prisma.touristProfile.upsert({ where: { userId }, update: { country: input.country }, create: { userId, country: input.country } });
     return this.getProfile(updated.id);
   }
+
+  getBookings(userId: string) { return this.prisma.booking.findMany({ where: { touristId: userId }, include: { package: { select: { name: true, basePrice: true, currency: true } }, payments: { orderBy: { submittedAt: "desc" } } }, orderBy: { createdAt: "desc" } }); }
 }

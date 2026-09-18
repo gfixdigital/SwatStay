@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { getPackage } from "@/data/packages";
 import { useDemoAuth } from "@/hooks/useDemoAuth";
+import { getMyBookings, submitPaymentProof } from "@/lib/api";
 
 type Service = {
   id: string;
@@ -48,6 +49,7 @@ type Service = {
 type DashboardTab = "overview" | "services" | "itinerary" | "support";
 type DocumentStatus = "Available" | "Pending confirmation" | "Coming after final confirmation";
 type PaymentProofStatus = "Proof submitted" | "Updated proof submitted";
+type LiveTravelerBooking = { id: string; reference: string; package?: { basePrice?: number; currency?: string } | null; payments?: Array<{ amount: number; method: string; status: string }> };
 
 const dashboardPackage = getPackage("couple-standard-kalam");
 const changeTypes = ["Change travel date", "Change pickup city", "Add traveler", "Upgrade package", "Add activity", "Cancel trip", "Other"];
@@ -75,6 +77,7 @@ export function DashboardView() {
   const [paymentProofOpen, setPaymentProofOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
   const [paymentProofStatus, setPaymentProofStatus] = useState<PaymentProofStatus>("Proof submitted");
+  const [liveBooking, setLiveBooking] = useState<LiveTravelerBooking | null>(null);
   const [supportStatus, setSupportStatus] = useState("SUP-82 · Meal preference · Open");
   const [lastUpdated, setLastUpdated] = useState("Not refreshed yet");
   const [services, setServices] = useState<Service[]>([
@@ -83,6 +86,7 @@ export function DashboardView() {
     { id: "guide", title: "Ushu Forest guide", provider: "Naveed Khan · Local guide", detail: "Day 2 · 09:30", status: "Pending", icon: <Mountain size={18}/> },
     { id: "meals", title: "Breakfast and dinner", provider: "Kalam View Guesthouse", detail: "Included in stay", status: "Ready", icon: <Utensils size={18}/> },
   ]);
+  useEffect(() => { getMyBookings<LiveTravelerBooking>().then((items) => setLiveBooking(items[0] ?? null)).catch(() => undefined); }, []);
 
   if (ready && traveler && !traveler.hasDemoTrip) return <NewTravelerDashboard name={traveler.name}/>;
 
@@ -125,7 +129,7 @@ export function DashboardView() {
             <TripSummary/>
             <ActivityTimeline checkedIn={checkedIn}/>
             <ItinerarySection/>
-            <div className="grid gap-4 xl:grid-cols-2"><CallConfirmation/><PaymentBreakdown proofStatus={paymentProofStatus} onUpload={() => setPaymentProofOpen(true)}/></div>
+            <div className="grid gap-4 xl:grid-cols-2"><CallConfirmation/><PaymentBreakdown proofStatus={paymentProofStatus} onUpload={() => setPaymentProofOpen(true)} totalAmount={liveBooking?.package?.basePrice ?? 48000} amountPaid={liveBooking?.payments?.filter((payment) => payment.status !== "REJECTED" && payment.status !== "REFUNDED").reduce((total, payment) => total + payment.amount, 0) ?? 15000} paymentMethod={liveBooking?.payments?.[0]?.method ?? "Bank transfer"}/></div>
           </div>
 
           <div className={`${panelClass("services")} space-y-5`} role="tabpanel">
@@ -148,7 +152,7 @@ export function DashboardView() {
     </section>
 
     <ChangeRequestModal open={changeOpen} onClose={() => setChangeOpen(false)} onSubmitted={(type) => setSupportStatus(`DEMO-CHANGE · ${type} · Open`)}/>
-    <PaymentProofModal open={paymentProofOpen} onClose={() => setPaymentProofOpen(false)} onSubmitted={() => setPaymentProofStatus("Updated proof submitted")}/>
+    <PaymentProofModal open={paymentProofOpen} bookingId={liveBooking?.id} onClose={() => setPaymentProofOpen(false)} onSubmitted={() => setPaymentProofStatus("Updated proof submitted")}/>
     <SupportRequestModal open={supportOpen} onClose={() => setSupportOpen(false)} onSubmitted={(type) => setSupportStatus(`DEMO-SUPPORT · ${type} · Open`)}/>
     <QrVoucherModal open={qrOpen} checkedIn={checkedIn} onClose={() => setQrOpen(false)} onCheckIn={demoCheckIn}/>
   </>;
@@ -181,10 +185,10 @@ function CallConfirmation() {
   </section>;
 }
 
-function PaymentBreakdown({ proofStatus, onUpload }: { proofStatus: PaymentProofStatus; onUpload: () => void }) {
+function PaymentBreakdown({ proofStatus, onUpload, totalAmount, amountPaid, paymentMethod }: { proofStatus: PaymentProofStatus; onUpload: () => void; totalAmount: number; amountPaid: number; paymentMethod: string }) {
   return <section className="rounded-brand border border-border bg-white p-4 md:p-5">
-    <div className="flex items-start justify-between gap-3"><div><div className="eyebrow mb-1">PAYMENT BREAKDOWN</div><h2 className="font-display text-xl font-bold text-charcoal">PKR 48,000 total</h2></div><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-[#faf3e8] text-amber"><Banknote size={18}/></span></div>
-    <dl className="mt-4 divide-y divide-border text-sm"><DetailRow label="Amount submitted" value="PKR 15,000"/><DetailRow label="Remaining balance" value="PKR 33,000"/><DetailRow label="Payment method" value="Bank transfer"/><DetailRow label="Payment proof" value={proofStatus}/></dl>
+    <div className="flex items-start justify-between gap-3"><div><div className="eyebrow mb-1">PAYMENT BREAKDOWN</div><h2 className="font-display text-xl font-bold text-charcoal">PKR {totalAmount.toLocaleString()} total</h2></div><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-[#faf3e8] text-amber"><Banknote size={18}/></span></div>
+    <dl className="mt-4 divide-y divide-border text-sm"><DetailRow label="Amount submitted" value={`PKR ${amountPaid.toLocaleString()}`}/><DetailRow label="Remaining balance" value={`PKR ${Math.max(totalAmount - amountPaid, 0).toLocaleString()}`}/><DetailRow label="Payment method" value={paymentMethod}/><DetailRow label="Payment proof" value={proofStatus}/></dl>
     <div className="mt-4 rounded-md border border-border bg-snow p-3 text-xs leading-5 text-stone"><strong className="block text-sm text-charcoal">Transfer account for this booking</strong><dl className="mt-2 space-y-1"><div className="flex justify-between gap-3"><dt>Account title</dt><dd className="font-semibold text-charcoal">GFix Travel Services</dd></div><div className="flex justify-between gap-3"><dt>Bank</dt><dd className="font-semibold text-charcoal">Demo Bank Pakistan</dd></div><div className="flex justify-between gap-3"><dt>Account number</dt><dd className="font-semibold text-charcoal">0000 2048 4800</dd></div><div className="flex justify-between gap-3"><dt>Reference</dt><dd className="font-semibold text-charcoal">SS-2048</dd></div></dl><p className="mt-2">Use your booking reference as the transfer note. These are placeholder details for the frontend review.</p></div>
     <button type="button" onClick={onUpload} className="button mt-3 min-h-10 w-full border-border bg-white px-3 text-xs text-pine hover:bg-mist"><Upload size={15}/> Upload or update payment proof</button>
     <p className="mt-3 rounded-md border border-[#eed7b8] bg-[#faf3e8] p-3 text-xs leading-5 text-stone">Final balance, bank details, and proof status are confirmed by the GFix team during booking coordination.</p>
@@ -238,7 +242,7 @@ function EmergencySupport() {
   return <section className="rounded-brand border border-[#e2c8bf] bg-[#fff8f5] p-4"><div className="flex items-start gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white text-[#9c3f2e]"><AlertTriangle size={18}/></span><div><div className="eyebrow mb-1 text-[#9c3f2e]">EMERGENCY SUPPORT</div><h2 className="font-display text-lg font-semibold text-charcoal">Available during your active trip</h2></div></div><p className="mt-3 text-sm leading-5 text-stone">For urgent pickup, safety, accommodation, or route coordination. Contact local emergency services first for immediate danger.</p><div className="mt-4 grid grid-cols-2 gap-2"><a href="tel:+92946000000" className="button min-h-9 bg-[#9c3f2e] px-2 text-xs text-white hover:bg-[#813326]"><PhoneCall size={14}/> Call support</a><a href="https://wa.me/92946000000" target="_blank" rel="noreferrer" className="button min-h-9 border-[#e2c8bf] bg-white px-2 text-xs text-[#813326] hover:bg-[#fff1eb]"><MessageCircle size={14}/> WhatsApp</a></div></section>;
 }
 
-function PaymentProofModal({ open, onClose, onSubmitted }: { open: boolean; onClose: () => void; onSubmitted: () => void }) {
+function PaymentProofModal({ open, bookingId, onClose, onSubmitted }: { open: boolean; bookingId?: string; onClose: () => void; onSubmitted: () => void }) {
   const reduceMotion = useReducedMotion();
   const [method, setMethod] = useState("Bank transfer");
   const [amount, setAmount] = useState("15000");
@@ -263,12 +267,12 @@ function PaymentProofModal({ open, onClose, onSubmitted }: { open: boolean; onCl
     setFileName(file.name);
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!fileName) { setError("Choose a payment proof file before submitting."); return; }
+    if (!bookingId) { setError("No live booking is linked to this dashboard yet. Log in and open a confirmed booking before submitting proof."); return; }
     setError("");
-    setSubmitted(true);
-    onSubmitted();
+    try { await submitPaymentProof(bookingId, { amount: Number(amount), method, transactionReference: reference, proofUrl: fileName, notes: "Proof file name recorded. Secure file storage will be connected next." }); setSubmitted(true); onSubmitted(); } catch (reason) { setError(reason instanceof Error ? reason.message : "Unable to submit payment proof."); }
   }
 
   function closeModal() {
@@ -276,7 +280,7 @@ function PaymentProofModal({ open, onClose, onSubmitted }: { open: boolean; onCl
     window.setTimeout(() => { setSubmitted(false); setFileName(""); setError(""); }, reduceMotion ? 0 : 220);
   }
 
-  return <AnimatePresence>{open && <motion.div className="fixed inset-0 z-[100] grid place-items-center bg-charcoal/60 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? 0 : .18 }} onMouseDown={(event) => event.target === event.currentTarget && closeModal()}><motion.section role="dialog" aria-modal="true" aria-labelledby="payment-proof-title" initial={reduceMotion ? false : { opacity: 0, y: 16, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 10, scale: .98 }} transition={{ duration: reduceMotion ? 0 : .2, ease: "easeOut" }} className="relative max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-brand border border-border bg-white p-5 shadow-2xl sm:p-6"><button type="button" onClick={closeModal} className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-md text-stone hover:bg-mist hover:text-pine" aria-label="Close payment proof"><X size={19}/></button>{submitted ? <div className="py-8 text-center"><span className="mx-auto grid h-12 w-12 place-items-center rounded-md bg-mist text-pine"><CheckCircle2 size={24}/></span><h2 id="payment-proof-title" className="mt-4 font-display text-2xl font-bold text-charcoal">Payment proof submitted</h2><p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-stone">Your updated proof is ready for GFix finance review in this frontend preview. It is not uploaded to a server yet.</p><button type="button" onClick={closeModal} className="button mt-6 bg-pine text-white hover:bg-[#0e2c22]">Close</button></div> : <><div className="pr-10"><div className="eyebrow mb-1">PAYMENT REVIEW</div><h2 id="payment-proof-title" className="font-display text-2xl font-bold text-charcoal">Update payment proof</h2><p className="mt-2 text-sm leading-5 text-stone">Reference SS-2048. Add the details GFix needs to match your payment.</p></div><form onSubmit={submit} className="mt-5 space-y-4"><div className="grid gap-4 sm:grid-cols-2"><label className="block"><span className="mb-1.5 block text-sm font-semibold text-charcoal">Amount paid</span><input type="number" min="1" max="48000" value={amount} onChange={(event) => setAmount(event.target.value)} className="field w-full" required/></label><label className="block"><span className="mb-1.5 block text-sm font-semibold text-charcoal">Payment method</span><select value={method} onChange={(event) => setMethod(event.target.value)} className="field w-full" required><option>Bank transfer</option><option>JazzCash</option><option>EasyPaisa</option><option>Cash deposit</option><option>Other</option></select></label></div><label className="block"><span className="mb-1.5 block text-sm font-semibold text-charcoal">Transaction reference</span><input value={reference} onChange={(event) => setReference(event.target.value)} className="field w-full" placeholder="Bank or wallet reference" required/></label><label className="block"><span className="mb-1.5 block text-sm font-semibold text-charcoal">Proof file</span><span className="flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-brand border border-dashed border-border bg-snow px-4 text-center hover:border-river"><Upload size={20} className="text-river"/><strong className="mt-2 text-sm text-charcoal">{fileName || "Choose receipt or screenshot"}</strong><small className="mt-1 text-xs text-stone">JPG, PNG, or PDF. Maximum 5 MB.</small><input type="file" accept="image/jpeg,image/png,application/pdf" className="sr-only" onChange={(event) => selectFile(event.target.files?.[0])}/></span></label>{error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>}<p className="rounded-md bg-mist p-3 text-xs leading-5 text-stone">Frontend preview only. The future file service will upload this securely and notify the finance queue.</p><button type="submit" className="button w-full bg-pine text-white hover:bg-[#0e2c22]">Submit proof for review <Upload size={16}/></button></form></>}</motion.section></motion.div>}</AnimatePresence>;
+  return <AnimatePresence>{open && <motion.div className="fixed inset-0 z-[100] grid place-items-center bg-charcoal/60 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? 0 : .18 }} onMouseDown={(event) => event.target === event.currentTarget && closeModal()}><motion.section role="dialog" aria-modal="true" aria-labelledby="payment-proof-title" initial={reduceMotion ? false : { opacity: 0, y: 16, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 10, scale: .98 }} transition={{ duration: reduceMotion ? 0 : .2, ease: "easeOut" }} className="relative max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-brand border border-border bg-white p-5 shadow-2xl sm:p-6"><button type="button" onClick={closeModal} className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-md text-stone hover:bg-mist hover:text-pine" aria-label="Close payment proof"><X size={19}/></button>{submitted ? <div className="py-8 text-center"><span className="mx-auto grid h-12 w-12 place-items-center rounded-md bg-mist text-pine"><CheckCircle2 size={24}/></span><h2 id="payment-proof-title" className="mt-4 font-display text-2xl font-bold text-charcoal">Payment proof submitted</h2><p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-stone">Your proof is now in the GFix finance review queue.</p><button type="button" onClick={closeModal} className="button mt-6 bg-pine text-white hover:bg-[#0e2c22]">Close</button></div> : <><div className="pr-10"><div className="eyebrow mb-1">PAYMENT REVIEW</div><h2 id="payment-proof-title" className="font-display text-2xl font-bold text-charcoal">Update payment proof</h2><p className="mt-2 text-sm leading-5 text-stone">Add the details GFix needs to match your payment.</p></div><form onSubmit={submit} className="mt-5 space-y-4"><div className="grid gap-4 sm:grid-cols-2"><label className="block"><span className="mb-1.5 block text-sm font-semibold text-charcoal">Amount paid</span><input type="number" min="1" max="48000" value={amount} onChange={(event) => setAmount(event.target.value)} className="field w-full" required/></label><label className="block"><span className="mb-1.5 block text-sm font-semibold text-charcoal">Payment method</span><select value={method} onChange={(event) => setMethod(event.target.value)} className="field w-full" required><option>Bank transfer</option><option>JazzCash</option><option>EasyPaisa</option><option>Cash deposit</option><option>Other</option></select></label></div><label className="block"><span className="mb-1.5 block text-sm font-semibold text-charcoal">Transaction reference</span><input value={reference} onChange={(event) => setReference(event.target.value)} className="field w-full" placeholder="Bank or wallet reference" required/></label><label className="block"><span className="mb-1.5 block text-sm font-semibold text-charcoal">Proof file</span><span className="flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-brand border border-dashed border-border bg-snow px-4 text-center hover:border-river"><Upload size={20} className="text-river"/><strong className="mt-2 text-sm text-charcoal">{fileName || "Choose receipt or screenshot"}</strong><small className="mt-1 text-xs text-stone">JPG, PNG, or PDF. Maximum 5 MB.</small><input type="file" accept="image/jpeg,image/png,application/pdf" className="sr-only" onChange={(event) => selectFile(event.target.files?.[0])}/></span></label>{error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>}<p className="rounded-md bg-mist p-3 text-xs leading-5 text-stone">The proof filename is recorded now. Secure file storage will replace this placeholder before production.</p><button type="submit" className="button w-full bg-pine text-white hover:bg-[#0e2c22]">Submit proof for review <Upload size={16}/></button></form></>}</motion.section></motion.div>}</AnimatePresence>;
 }
 
 function SupportRequestModal({ open, onClose, onSubmitted }: { open: boolean; onClose: () => void; onSubmitted: (type: string) => void }) {

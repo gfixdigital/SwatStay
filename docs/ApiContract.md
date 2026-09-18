@@ -192,6 +192,10 @@ Response data:
 
 Protected.
 
+### GET /users/me/bookings
+
+Protected for the logged-in tourist. Returns the tourist's bookings with package pricing and payment records for the dashboard payment summary.
+
 Purpose: get current logged-in user.
 
 ## 6. Destinations Endpoints

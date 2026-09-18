@@ -21,7 +21,7 @@ export class FinanceService {
     return payment;
   }
 
-  listPayments() { return this.prisma.payment.findMany({ include: { booking: { select: { reference: true, destination: true } }, submittedBy: { select: { id: true, fullName: true, email: true } } }, orderBy: { submittedAt: "desc" } }); }
+  listPayments() { return this.prisma.payment.findMany({ include: { booking: { select: { reference: true, destination: true } }, submittedBy: { select: { id: true, fullName: true, email: true } }, reviewedBy: { select: { fullName: true } } }, orderBy: { submittedAt: "desc" } }); }
 
   async reviewPayment(actorId: string, id: string, input: PaymentReviewDto) {
     const payment = await this.prisma.payment.findUnique({ where: { id } });

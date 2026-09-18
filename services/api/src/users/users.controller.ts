@@ -15,6 +15,9 @@ export class UsersController {
   @Get("me")
   async getProfile(@Req() request: RequestWithUser) { return success(await this.users.getProfile(request.user.id), "Profile fetched successfully"); }
 
+  @Get("me/bookings")
+  async getBookings(@Req() request: RequestWithUser) { return success(await this.users.getBookings(request.user.id), "Bookings fetched successfully"); }
+
   @Patch("me")
   async updateProfile(@Req() request: RequestWithUser, @Body() input: UpdateProfileDto) { return success(await this.users.updateProfile(request.user.id, input), "Profile updated successfully"); }
 }
