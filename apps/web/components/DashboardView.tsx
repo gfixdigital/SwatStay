@@ -33,7 +33,7 @@ import {
   WalletCards,
   X,
 } from "lucide-react";
-import { getPackage } from "@/data/packages";
+import { packages } from "@/data/packages";
 import { useDemoAuth } from "@/hooks/useDemoAuth";
 
 type Service = {
@@ -49,7 +49,7 @@ type DashboardTab = "overview" | "services" | "itinerary" | "support";
 type DocumentStatus = "Available" | "Pending confirmation" | "Coming after final confirmation";
 type PaymentProofStatus = "Proof submitted" | "Updated proof submitted";
 
-const dashboardPackage = getPackage("couple-standard-kalam");
+const dashboardPackage = packages.find((p) => p.slug === "couple-standard-kalam");
 const changeTypes = ["Change travel date", "Change pickup city", "Add traveler", "Upgrade package", "Add activity", "Cancel trip", "Other"];
 const dashboardTabs: { id: DashboardTab; label: string }[] = [
   { id: "overview", label: "Overview" },

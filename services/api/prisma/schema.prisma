@@ -6,6 +6,378 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id                                  String                  @id @default(uuid())
+  fullName                            String
+  email                               String?                 @unique
+  phone                               String?                 @unique
+  passwordHash                        String?
+  role                                UserRole
+  preferredLanguage                   Language                @default(EN)
+  isActive                            Boolean                 @default(true)
+  createdAt                           DateTime                @default(now())
+  updatedAt                           DateTime                @updatedAt
+  address                             String?
+  travelPreferences                   Json?
+  AuditLog                            AuditLog[]
+  AuthSession                         AuthSession[]
+  bookings                            Booking[]               @relation("TouristBookings")
+  events                              BookingEvent[]
+  assignedBy                          BookingTeamAssignment[] @relation("AssignedBy")
+  assignments                         BookingTeamAssignment[]
+  ConsentRecord                       ConsentRecord[]
+  CustomTripRequest                   CustomTripRequest[]
+  DataDeletionRequest                 DataDeletionRequest[]
+  Payment_Payment_reviewedByIdToUser  Payment[]               @relation("Payment_reviewedByIdToUser")
+  Payment_Payment_submittedByIdToUser Payment[]               @relation("Payment_submittedByIdToUser")
+  Payout                              Payout[]
+  providerProfile                     Provider?
+  ProviderRegistration                ProviderRegistration[]
+  SupportMessage                      SupportMessage[]
+  SupportTicket                       SupportTicket[]
+  touristProfile                      TouristProfile?
+}
+
+model TouristProfile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  country   String?
+  whatsapp  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Destination {
+  id               String    @id @default(uuid())
+  name             String
+  slug             String    @unique
+  shortDescription String?
+  description      String?
+  imageUrl         String?
+  bestFor          String[]
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  packages         Package[]
+}
+
+model Package {
+  id                 String                   @id @default(uuid())
+  destinationId      String
+  name               String
+  slug               String                   @unique
+  type               PackageType
+  tier               PackageTier
+  description        String?
+  route              String?
+  summary            String?
+  durationDays       Int
+  durationNights     Int?
+  basePrice          Int
+  currency           String                   @default("PKR")
+  coverImageUrl      String?
+  image              String?
+  cancellationPolicy String?
+  isActive           Boolean                  @default(true)
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  bookings           Booking[]
+  destination        Destination              @relation(fields: [destinationId], references: [id])
+  items              PackageItem[]
+  serviceAssignments PackageServiceAssignment[]
+}
+
+model PackageItem {
+  id          String      @id @default(uuid())
+  packageId   String
+  serviceType ServiceType
+  title       String
+  description String?
+  package     Package     @relation(fields: [packageId], references: [id], onDelete: Cascade)
+}
+
+model PackageServiceAssignment {
+  id                 String           @id @default(uuid())
+  packageId          String
+  serviceType        ServiceType
+  providerName       String
+  displayTitle       String
+  displayDescription String?
+  displayLocation    String?
+  assignmentStatus   String           @default("sample")
+  sortOrder          Int              @default(0)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  package            Package          @relation(fields: [packageId], references: [id], onDelete: Cascade)
+}
+
+model Provider {
+  id                    String         @id @default(uuid())
+  userId                String?        @unique
+  businessName          String
+  ownerName             String
+  phone                 String
+  serviceCategory       ServiceType
+  location              String
+  status                ProviderStatus @default(PENDING_REVIEW)
+  defaultCommissionRate Decimal?       @db.Decimal(5, 2)
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  bookingItems          BookingItem[]
+  Commission            Commission[]
+  Payout                Payout[]
+  user                  User?          @relation(fields: [userId], references: [id])
+}
+
+model Booking {
+  id                     String                  @id @default(uuid())
+  reference              String                  @unique
+  touristId              String
+  packageId              String?
+  fullName               String
+  email                  String
+  phone                  String
+  whatsapp               String?
+  country                String?
+  destination            String
+  travelStart            DateTime
+  travelEnd              DateTime
+  travelersCount         Int
+  travelerType           String?
+  tier                   String?
+  pickupCity             String
+  specialRequests        String?
+  preferredPaymentMethod String?
+  preferredLanguage      String                  @default("EN")
+  status                 BookingStatus           @default(CALL_PENDING)
+  paymentStatus          PaymentStatus           @default(PENDING)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  package                Package?                @relation(fields: [packageId], references: [id])
+  tourist                User                    @relation("TouristBookings", fields: [touristId], references: [id])
+  events                 BookingEvent[]
+  items                  BookingItem[]
+  teamAssignments        BookingTeamAssignment[]
+  Commission             Commission[]
+  Payment                Payment[]
+}
+
+model BookingItem {
+  id          String           @id @default(uuid())
+  bookingId   String
+  providerId  String?
+  serviceType ServiceType
+  status      AssignmentStatus @default(PENDING_PROVIDER)
+  price       Int?
+  commission  Int?
+  booking     Booking          @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  provider    Provider?        @relation(fields: [providerId], references: [id])
+  Commission  Commission[]
+}
+
+model BookingTeamAssignment {
+  id           String   @id @default(uuid())
+  bookingId    String
+  memberId     String
+  assignedById String?
+  assignedAt   DateTime @default(now())
+  assignedBy   User?    @relation("AssignedBy", fields: [assignedById], references: [id])
+  booking      Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  member       User     @relation(fields: [memberId], references: [id])
+}
+
+model BookingEvent {
+  id        String   @id @default(uuid())
+  bookingId String
+  actorId   String?
+  eventType String
+  payload   Json?
+  createdAt DateTime @default(now())
+  actor     User?    @relation(fields: [actorId], references: [id])
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id         String   @id
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  User       User?    @relation(fields: [actorId], references: [id])
+}
+
+model AuthSession {
+  id        String    @id
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  User      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Commission {
+  id               String       @id
+  bookingId        String
+  bookingItemId    String?
+  providerId       String
+  rate             Decimal      @db.Decimal(5, 2)
+  grossAmount      Int
+  commissionAmount Int
+  providerAmount   Int
+  currency         String       @default("PKR")
+  createdAt        DateTime     @default(now())
+  Booking          Booking      @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  BookingItem      BookingItem? @relation(fields: [bookingItemId], references: [id])
+  Provider         Provider     @relation(fields: [providerId], references: [id])
+  Payout           Payout?
+}
+
+model ConsentRecord {
+  id            String   @id
+  userId        String?
+  consentType   String
+  policyVersion String
+  accepted      Boolean
+  source        String
+  createdAt     DateTime @default(now())
+  User          User?    @relation(fields: [userId], references: [id])
+}
+
+model ContactSubmission {
+  id        String   @id
+  name      String
+  email     String
+  phone     String?
+  subject   String?
+  message   String
+  source    String   @default("website")
+  status    String   @default("NEW")
+  consent   Boolean
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+}
+
+model CustomTripRequest {
+  id            String    @id
+  userId        String?
+  name          String
+  email         String
+  phone         String
+  destination   String
+  travelStart   DateTime?
+  travelEnd     DateTime?
+  travelers     Int
+  pickupCity    String
+  accommodation String?
+  interests     String?
+  budget        String?
+  notes         String?
+  status        String    @default("NEW")
+  consent       Boolean
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime
+  User          User?     @relation(fields: [userId], references: [id])
+}
+
+model DataDeletionRequest {
+  id         String    @id
+  userId     String?
+  email      String
+  reason     String?
+  status     String    @default("REQUESTED")
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+  User       User?     @relation(fields: [userId], references: [id])
+}
+
+model Payment {
+  id                               String        @id
+  bookingId                        String
+  submittedById                    String?
+  amount                           Int
+  currency                         String        @default("PKR")
+  method                           String
+  transactionReference             String?
+  proofUrl                         String?
+  status                           PaymentStatus @default(PENDING)
+  reviewNote                       String?
+  reviewedById                     String?
+  submittedAt                      DateTime      @default(now())
+  reviewedAt                       DateTime?
+  Booking                          Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  User_Payment_reviewedByIdToUser  User?         @relation("Payment_reviewedByIdToUser", fields: [reviewedById], references: [id])
+  User_Payment_submittedByIdToUser User?         @relation("Payment_submittedByIdToUser", fields: [submittedById], references: [id])
+}
+
+model Payout {
+  id           String       @id
+  providerId   String
+  commissionId String       @unique
+  amount       Int
+  currency     String       @default("PKR")
+  method       String?
+  accountLabel String?
+  status       PayoutStatus @default(PENDING)
+  financeNote  String?
+  approvedById String?
+  paidAt       DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime
+  User         User?        @relation(fields: [approvedById], references: [id])
+  Commission   Commission   @relation(fields: [commissionId], references: [id])
+  Provider     Provider     @relation(fields: [providerId], references: [id])
+}
+
+model ProviderRegistration {
+  id              String      @id
+  userId          String?
+  businessName    String
+  ownerName       String
+  email           String
+  phone           String
+  serviceCategory ServiceType
+  location        String
+  address         String?
+  capacity        Int?
+  description     String?
+  status          String      @default("NEW")
+  consent         Boolean
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime
+  User            User?       @relation(fields: [userId], references: [id])
+}
+
+model SupportMessage {
+  id            String        @id
+  ticketId      String
+  authorId      String?
+  body          String
+  audience      String        @default("TRAVELER")
+  createdAt     DateTime      @default(now())
+  User          User?         @relation(fields: [authorId], references: [id])
+  SupportTicket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+}
+
+model SupportTicket {
+  id             String           @id
+  userId         String?
+  bookingId      String?
+  guestEmail     String?
+  subject        String
+  issueType      String
+  priority       String           @default("NORMAL")
+  status         String           @default("OPEN")
+  assignedTo     String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime
+  SupportMessage SupportMessage[]
+  User           User?            @relation(fields: [userId], references: [id])
+}
+
 enum UserRole {
   TOURIST
   PROVIDER
@@ -20,6 +392,22 @@ enum Language {
   EN
   UR
   ZH
+}
+
+enum PackageType {
+  SOLO
+  COUPLE
+  FAMILY
+  GROUP
+  SHARING
+  PRIVATE
+}
+
+enum PackageTier {
+  BASIC
+  STANDARD
+  PREMIUM
+  LUXURY
 }
 
 enum ServiceType {
@@ -72,140 +460,10 @@ enum AssignmentStatus {
   CANCELLED
 }
 
-model User {
-  id                String   @id @default(uuid())
-  fullName          String
-  email             String?  @unique
-  phone             String?  @unique
-  passwordHash      String?
-  role              UserRole
-  preferredLanguage Language @default(EN)
-  isActive          Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  touristProfile    TouristProfile?
-  providerProfile   Provider?
-  bookings          Booking[] @relation("TouristBookings")
-  assignments       BookingTeamAssignment[]
-  assignedBy        BookingTeamAssignment[] @relation("AssignedBy")
-  events            BookingEvent[]
-}
-
-model TouristProfile {
-  id String @id @default(uuid())
-  userId String @unique
-  country String?
-  whatsapp String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model Destination {
-  id String @id @default(uuid())
-  name String
-  slug String @unique
-  description String?
-  isActive Boolean @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  packages Package[]
-}
-
-model Package {
-  id String @id @default(uuid())
-  destinationId String
-  name String
-  slug String @unique
-  summary String?
-  durationDays Int
-  basePrice Int
-  currency String @default("PKR")
-  isActive Boolean @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  destination Destination @relation(fields: [destinationId], references: [id])
-  items PackageItem[]
-  bookings Booking[]
-}
-
-model PackageItem {
-  id String @id @default(uuid())
-  packageId String
-  serviceType ServiceType
-  title String
-  description String?
-  package Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
-}
-
-model Provider {
-  id String @id @default(uuid())
-  userId String? @unique
-  businessName String
-  ownerName String
-  phone String
-  serviceCategory ServiceType
-  location String
-  status ProviderStatus @default(PENDING_REVIEW)
-  defaultCommissionRate Decimal? @db.Decimal(5, 2)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user User? @relation(fields: [userId], references: [id])
-  bookingItems BookingItem[]
-}
-
-model Booking {
-  id String @id @default(uuid())
-  reference String @unique
-  touristId String
-  packageId String?
-  destination String
-  travelStart DateTime
-  travelEnd DateTime
-  travelersCount Int
-  pickupCity String
-  specialRequests String?
-  status BookingStatus @default(CALL_PENDING)
-  paymentStatus PaymentStatus @default(PENDING)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  tourist User @relation("TouristBookings", fields: [touristId], references: [id])
-  package Package? @relation(fields: [packageId], references: [id])
-  items BookingItem[]
-  teamAssignments BookingTeamAssignment[]
-  events BookingEvent[]
-}
-
-model BookingItem {
-  id String @id @default(uuid())
-  bookingId String
-  providerId String?
-  serviceType ServiceType
-  status AssignmentStatus @default(PENDING_PROVIDER)
-  price Int?
-  commission Int?
-  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  provider Provider? @relation(fields: [providerId], references: [id])
-}
-
-model BookingTeamAssignment {
-  id String @id @default(uuid())
-  bookingId String
-  memberId String
-  assignedById String?
-  assignedAt DateTime @default(now())
-  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  member User @relation(fields: [memberId], references: [id])
-  assignedBy User? @relation("AssignedBy", fields: [assignedById], references: [id])
-}
-
-model BookingEvent {
-  id String @id @default(uuid())
-  bookingId String
-  actorId String?
-  eventType String
-  payload Json?
-  createdAt DateTime @default(now())
-  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  actor User? @relation(fields: [actorId], references: [id])
+enum PayoutStatus {
+  PENDING
+  APPROVED
+  PROCESSING
+  PAID
+  FAILED
 }

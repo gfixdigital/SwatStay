@@ -8,13 +8,15 @@ import { BookingForm } from "./BookingForm";
 import { CurrencyPrice } from "./CurrencyPrice";
 
 type PackageBookingModalProps = {
+  packageSlug: string;
   packageTitle: string;
   packageImage: string;
   price: number;
   duration: string;
+  destination: string;
 };
 
-export function PackageBookingModal({ packageTitle, packageImage, price, duration }: PackageBookingModalProps) {
+export function PackageBookingModal({ packageSlug, packageTitle, packageImage, price, duration, destination }: PackageBookingModalProps) {
   const [open, setOpen] = useState(false);
   const reduceMotion = useReducedMotion();
   const { t } = useLanguage();
@@ -56,7 +58,7 @@ export function PackageBookingModal({ packageTitle, packageImage, price, duratio
       {open && <motion.div className="fixed inset-0 z-[90] flex items-end justify-center bg-charcoal/60 p-0 sm:items-center sm:p-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? 0 : .18 }} onMouseDown={(event) => event.target === event.currentTarget && setOpen(false)}>
         <motion.section role="dialog" aria-modal="true" aria-labelledby="package-booking-title" initial={reduceMotion ? false : { opacity: 0, y: 18, scale: .99 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 12, scale: .99 }} transition={{ duration: reduceMotion ? 0 : .22, ease: "easeOut" }} className="flex max-h-[94dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-brand border border-border bg-snow shadow-2xl sm:rounded-brand">
           <header className="flex items-start justify-between gap-4 border-b border-border bg-white px-5 py-4 sm:px-6"><div><span className="text-[10px] font-bold uppercase tracking-[.08em] text-river">Booking request</span><h2 id="package-booking-title" className="mt-1 font-display text-xl font-bold text-pine sm:text-2xl">{packageTitle}</h2><p className="mt-1 text-xs text-stone">Nothing is charged until the details are confirmed.</p></div><button type="button" onClick={() => setOpen(false)} aria-label="Close booking form" className="grid h-10 w-10 shrink-0 place-items-center rounded-brand border border-border bg-white text-stone hover:border-river hover:text-pine"><X size={19}/></button></header>
-          <div className="overflow-y-auto p-4 sm:p-6"><BookingForm packageTitle={packageTitle}/></div>
+          <div className="overflow-y-auto p-4 sm:p-6"><BookingForm packageSlug={packageSlug} packageTitle={packageTitle} destination={destination}/></div>
         </motion.section>
       </motion.div>}
     </AnimatePresence>
