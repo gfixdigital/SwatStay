@@ -137,7 +137,7 @@ export class BookingsService {
   async providerAssignments(userId: string) {
     const provider = await this.prisma.provider.findUnique({ where: { userId }, select: { id: true, businessName: true, status: true } });
     if (!provider) throw new NotFoundException("Provider profile not found");
-    return this.prisma.bookingItem.findMany({ where: { providerId: provider.id, status: { in: [AssignmentStatus.PENDING_PROVIDER, AssignmentStatus.ACCEPTED, AssignmentStatus.REJECTED] } }, include: { provider: { select: { businessName: true, serviceCategory: true, location: true } }, booking: { include: { tourist: { select: { fullName: true, phone: true, preferredLanguage: true } }, package: { select: { name: true, slug: true } } } } }, orderBy: { booking: { travelStart: "asc" } } });
+    return this.prisma.bookingItem.findMany({ where: { providerId: provider.id, status: { in: [AssignmentStatus.PENDING_PROVIDER, AssignmentStatus.ACCEPTED, AssignmentStatus.REJECTED] } }, include: { provider: { select: { id: true, businessName: true, serviceCategory: true, location: true } }, booking: { include: { tourist: { select: { fullName: true, phone: true, preferredLanguage: true } }, package: { select: { name: true, slug: true } } } } }, orderBy: { booking: { travelStart: "asc" } } });
   }
 
   async providerDecision(userId: string, itemId: string, input: ProviderDecisionDto) {

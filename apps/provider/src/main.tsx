@@ -1,5 +1,6 @@
 import { StrictMode, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { createRoot } from "react-dom/client";
+import { createClient } from "@supabase/supabase-js";
 import {
   Activity,
   AlertTriangle,
@@ -76,7 +77,7 @@ type Assignment = {
   request: string;
   status: Status;
 };
-type LiveAssignment = { id: string; serviceType: string; status: string; provider?: { businessName?: string; serviceCategory?: string; location?: string } | null; booking: { reference: string; travelStart: string; travelersCount: number; destination: string; pickupCity: string; specialRequests?: string | null } };
+type LiveAssignment = { id: string; serviceType: string; status: string; provider?: { id?: string; businessName?: string; serviceCategory?: string; location?: string } | null; booking: { reference: string; travelStart: string; travelersCount: number; destination: string; pickupCity: string; specialRequests?: string | null } };
 
 const API_BASE_URL = "http://localhost:4000/api/v1";
 const PROVIDER_TOKEN_KEY = "swatstay.provider.accessToken";
@@ -340,6 +341,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
       time: "Today, 11:10 AM",
     },
   ]);
+  const [assignmentRefresh, setAssignmentRefresh] = useState(0);
   const provider = providers.find((item) => item.id === providerId)!;
   const visibleProvider = liveProvider ?? provider;
   const assigned = assignments.filter((item) => item.providerId === (liveProvider?.id ?? providerId));
@@ -357,12 +359,21 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
     void fetch(`${API_BASE_URL}/provider/assignments`, { headers: { Authorization: `Bearer ${token}` } }).then(async (response) => { if (!response.ok) throw new Error("Unable to load provider assignments"); return response.json() as Promise<{ data: LiveAssignment[] }>; }).then((body) => {
       const first = body.data[0]?.provider;
       const providerKind = serviceKind(body.data[0]?.serviceType ?? "ACTIVITY");
-      const liveId = body.data[0]?.provider?.businessName ?? "provider";
+      const liveId = body.data[0]?.provider?.id ?? "provider";
       setLiveProvider(first ? { id: liveId, name: first.businessName ?? "Provider account", owner: "Provider account", kind: providerKind, location: first.location ?? "Swat", capacity: "Provider capacity", resourceLabel: "Service capacity", completionLabel: "Mark service complete", icon: providerKind === "Hotel" ? Hotel : providerKind === "Transport" ? Bus : providerKind === "Restaurant" ? Utensils : providerKind === "Tour guide" ? Mountain : providerKind === "Photographer" ? Camera : Activity, profileNote: "Only assigned booking details are visible." } : null);
       setAssignments(body.data.map((item) => mapLiveAssignment(item, liveId)));
       setSyncMessage("Live provider assignments loaded.");
     }).catch((reason: Error) => setSyncMessage(reason.message));
-  }, []);
+  }, [assignmentRefresh]);
+  useEffect(() => {
+    const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+    const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+    const providerId = liveProvider?.id;
+    if (!url || !key || !providerId) return;
+    const supabase = createClient(url, key);
+    const channel = supabase.channel(`provider-assignments-${providerId}`).on("postgres_changes", { event: "*", schema: "public", table: "BookingItem", filter: `providerId=eq.${providerId}` }, () => setAssignmentRefresh((value) => value + 1)).subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [liveProvider?.id]);
   const update = (id: string, status: Status) => {
     setAssignments((current) => current.map((item) => (item.id === id ? { ...item, status } : item)));
     const token = getProviderToken();
