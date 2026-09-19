@@ -112,6 +112,7 @@ model User {
   payoutApprovals   Payout[] @relation("PayoutApprover")
   tripChangeRequests TripChangeRequest[]
   createdVouchers ServiceVoucher[]
+  reviews        Review[]
 }
 
 model TouristProfile {
@@ -222,6 +223,7 @@ model Booking {
   commissions Commission[]
   tripChangeRequests TripChangeRequest[]
   vouchers ServiceVoucher[]
+  reviews Review[]
 }
 
 model TripChangeRequest {
@@ -254,6 +256,34 @@ model ServiceVoucher {
   updatedAt   DateTime @updatedAt
   booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  bookingId   String?
+  userId      String?
+  travelerName String
+  rating      Int
+  comment     String
+  status      String   @default("PENDING")
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  booking     Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model ContentEntry {
+  id          String   @id @default(uuid())
+  entryKey    String   @unique
+  kind        String
+  payload     Json
+  status      String   @default("DRAFT")
+  version     Int      @default(1)
+  updatedById String?
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model BookingItem {
