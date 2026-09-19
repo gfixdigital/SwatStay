@@ -97,4 +97,24 @@ export class BookingsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(...adminBookingRoles)
   async updateChangeRequest(@Req() req: RequestWithUser, @Param("id") id: string, @Body() input: { status?: string; assignedTo?: string | null; resolutionNote?: string }) { return success(await this.bookings.updateChangeRequest(req.user.id, id, input), "Trip change request updated"); }
+
+  @Get("admin/vouchers")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.OPERATIONS, UserRole.SUPPORT)
+  async vouchers() { return success(await this.bookings.listVouchers(), "Vouchers fetched successfully"); }
+
+  @Post("admin/vouchers")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.OPERATIONS)
+  async createVoucher(@Req() req: RequestWithUser, @Body() input: { bookingId: string; payload: unknown }) { return success(await this.bookings.createVoucher(req.user.id, input.bookingId, input.payload), "Voucher created"); }
+
+  @Patch("admin/vouchers/:id")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.OPERATIONS)
+  async updateVoucher(@Req() req: RequestWithUser, @Param("id") id: string, @Body() input: { status?: string; payload?: unknown }) { return success(await this.bookings.updateVoucher(req.user.id, id, input), "Voucher updated"); }
+
+  @Post("provider/vouchers/:code/scan")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.PROVIDER)
+  async scanVoucher(@Req() req: RequestWithUser, @Param("code") code: string, @Body("serviceId") serviceId?: string) { return success(await this.bookings.scanVoucher(req.user.id, code, serviceId), "Voucher scan accepted"); }
 }

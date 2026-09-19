@@ -25,10 +25,13 @@ import { StatusBadge } from "../components/StatusBadge";
 import { initialVouchers } from "../data/vouchers";
 import { useBookingsPreview } from "../hooks/useBookingsPreview";
 import { usePreviewState } from "../hooks/usePreviewState";
+import { adminRequest, getAdminToken } from "../lib/adminApi";
 import { workflowBlockReason } from "../lib/bookingWorkflow";
 import type { ServiceType, ServiceVoucher, VoucherEvent, VoucherService } from "../types/admin";
 
 type ModalMode = "none" | "detail" | "qr" | "provider" | "scan" | "generate";
+type LiveVoucher = { id: string; code: string; status: string; payload: Partial<ServiceVoucher>; bookingId: string; booking?: { reference?: string; tourist?: { fullName?: string; phone?: string } } };
+function mapLiveVoucher(item: LiveVoucher): ServiceVoucher { return { ...(item.payload as ServiceVoucher), id: item.id, code: item.code, status: item.status === "ACTIVE" ? "Active" : item.status === "REVOKED" ? "Revoked" : item.status === "COMPLETED" ? "Completed" : "Draft", bookingId: item.bookingId, bookingReference: item.booking?.reference ?? item.payload.bookingReference ?? "Unknown", touristName: item.booking?.tourist?.fullName ?? item.payload.touristName ?? "Traveler", touristPhone: item.booking?.tourist?.phone ?? item.payload.touristPhone ?? "", services: item.payload.services ?? [], deliveries: item.payload.deliveries ?? [], events: item.payload.events ?? [], packageName: item.payload.packageName ?? "SwatStay trip", travelStartDate: item.payload.travelStartDate ?? "", travelEndDate: item.payload.travelEndDate ?? "", createdAt: item.payload.createdAt ?? "", createdBy: item.payload.createdBy ?? "GFix team", expiresAt: item.payload.expiresAt ?? "" }; }
 
 const providerOptions = [
   { id: "p-101", name: "Pine View Hotel Kalam", type: "Hotel" as ServiceType, location: "Kalam" },
@@ -69,6 +72,7 @@ export function VouchersPage() {
   const [status, setStatus] = useState("All statuses");
   const [toast, setToast] = useState("");
   const [confirmRevoke, setConfirmRevoke] = useState(false);
+  useEffect(() => { if (!getAdminToken()) return; adminRequest<LiveVoucher[]>("/admin/vouchers").then((items) => { const mapped = items.map(mapLiveVoucher); setVouchers(mapped); if (mapped[0]) setSelectedId(mapped[0].id); }).catch(() => undefined); }, [setVouchers]);
   const routeBooking = bookingId ? bookings.find((booking) => booking.id === bookingId) : undefined;
   const voucherGate = routeBooking ? workflowBlockReason(routeBooking, "voucher") : null;
 
@@ -82,6 +86,7 @@ export function VouchersPage() {
 
   function updateVoucher(voucherId: string, update: (voucher: ServiceVoucher) => ServiceVoucher) {
     setVouchers((current) => current.map((voucher) => voucher.id === voucherId ? update(voucher) : voucher));
+    if (getAdminToken()) { const current = vouchers.find((voucher) => voucher.id === voucherId); if (current) { const next = update(current); void adminRequest(`/admin/vouchers/${voucherId}`, { method: "PATCH", body: JSON.stringify({ status: next.status.toUpperCase().replace(" ", "_"), payload: next }) }).catch(() => undefined); } }
   }
 
   function open(voucher: ServiceVoucher, mode: ModalMode) {

@@ -175,6 +175,44 @@ export class BookingsService {
     return updated;
   }
 
+  async listVouchers() {
+    return this.prisma.serviceVoucher.findMany({ include: { booking: { select: { reference: true, tourist: { select: { fullName: true, phone: true } } } } }, orderBy: { createdAt: "desc" } });
+  }
+
+  async createVoucher(actorId: string, bookingId: string, payload: unknown) {
+    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, select: { id: true, reference: true, travelEnd: true } });
+    if (!booking) throw new NotFoundException("Booking not found");
+    const code = `SWT-${randomBytes(5).toString("hex").toUpperCase()}`;
+    const voucher = await this.prisma.serviceVoucher.create({ data: { bookingId, code, status: "ACTIVE", payload: payload as any, createdById: actorId, expiresAt: booking.travelEnd }, include: { booking: { select: { reference: true } } } });
+    await this.audit.recordBookingEvent(bookingId, "SERVICE_VOUCHER_CREATED", actorId, { voucherId: voucher.id, code });
+    return voucher;
+  }
+
+  async updateVoucher(actorId: string, id: string, input: { status?: string; payload?: unknown }) {
+    const voucher = await this.prisma.serviceVoucher.findUnique({ where: { id } });
+    if (!voucher) throw new NotFoundException("Voucher not found");
+    const updated = await this.prisma.serviceVoucher.update({ where: { id }, data: { status: input.status, payload: input.payload as any } });
+    await this.audit.recordBookingEvent(voucher.bookingId, "SERVICE_VOUCHER_UPDATED", actorId, { voucherId: id, status: input.status });
+    return updated;
+  }
+
+  async scanVoucher(providerUserId: string, code: string, serviceId?: string) {
+    const provider = await this.prisma.provider.findUnique({ where: { userId: providerUserId }, select: { id: true, businessName: true } });
+    if (!provider) throw new NotFoundException("Provider profile not found");
+    const voucher = await this.prisma.serviceVoucher.findUnique({ where: { code } });
+    if (!voucher || voucher.status !== "ACTIVE" || (voucher.expiresAt && voucher.expiresAt < new Date())) throw new BadRequestException("Voucher is invalid, expired, or inactive");
+    const payload = voucher.payload && typeof voucher.payload === "object" ? voucher.payload as { services?: Array<{ id?: string; providerId?: string; status?: string; completedAt?: string }>; events?: unknown[] } : {};
+    const services = Array.isArray(payload.services) ? payload.services : [];
+    const target = services.find((service) => service.providerId === provider.id && (!serviceId || service.id === serviceId));
+    if (!target) throw new BadRequestException("This voucher is not assigned to this provider or service");
+    target.status = "Completed"; target.completedAt = new Date().toISOString();
+    const events = Array.isArray(payload.events) ? payload.events : [];
+    events.push({ type: "Scan accepted", actor: provider.businessName, providerId: provider.id, serviceId: target.id, occurredAt: new Date().toISOString() });
+    const updated = await this.prisma.serviceVoucher.update({ where: { id: voucher.id }, data: { payload: { ...payload, services, events } as any } });
+    await this.audit.recordBookingEvent(voucher.bookingId, "SERVICE_VOUCHER_SCANNED", providerUserId, { voucherId: voucher.id, code, providerId: provider.id, serviceId: target.id });
+    return updated;
+  }
+
   private adminInclude() {
     return {
       package: { select: { name: true, slug: true, basePrice: true, currency: true } },
