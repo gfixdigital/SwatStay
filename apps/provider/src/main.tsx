@@ -1,4 +1,4 @@
-import { StrictMode, useEffect, useMemo, useState, type FormEvent } from "react";
+import { StrictMode, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { createRoot } from "react-dom/client";
 import {
   Activity,
@@ -919,10 +919,26 @@ function Voucher({
 }) {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
-  const verify = (candidate = code) => {
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const stopCamera = () => { streamRef.current?.getTracks().forEach((track) => track.stop()); streamRef.current = null; setCameraOpen(false); };
+  useEffect(() => () => stopCamera(), []);
+  const verify = async (candidate = code) => {
+    const normalized = candidate.trim();
+    if (!normalized) { setError("Enter or scan a voucher code first."); return; }
+    const token = getProviderToken();
+    if (token) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/provider/vouchers/${encodeURIComponent(normalized)}/scan`, { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({}) });
+        const body = await response.json().catch(() => null) as { message?: string; data?: { payload?: { services?: Array<{ id?: string }> } } } | null;
+        if (!response.ok) throw new Error(body?.message ?? "Voucher validation failed.");
+        stopCamera(); setError(""); onVerified(accepted?.id ?? body?.data?.payload?.services?.[0]?.id ?? ""); return;
+      } catch (reason) { setError(reason instanceof Error ? reason.message : "Voucher validation failed."); return; }
+    }
     const service = assignments.find(
       (item) =>
-        candidate.toUpperCase().includes(item.reference.replace("SS-", "")) &&
+        normalized.toUpperCase().includes(item.reference.replace("SS-", "")) &&
         item.status === "Accepted",
     );
     if (!service) {
@@ -935,6 +951,19 @@ function Voucher({
     onVerified(service.id);
   };
   const accepted = assignments.find((item) => item.status === "Accepted");
+  async function startCamera() {
+    setError("");
+    if (!navigator.mediaDevices?.getUserMedia) { setError("Camera access is not supported in this browser. Enter the voucher code manually."); return; }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+      streamRef.current = stream; setCameraOpen(true); if (videoRef.current) videoRef.current.srcObject = stream;
+      const Detector = (window as Window & { BarcodeDetector?: new (options?: { formats?: string[] }) => { detect: (source: HTMLVideoElement) => Promise<Array<{ rawValue: string }>> } }).BarcodeDetector;
+      if (!Detector) { setError("Camera opened, but QR detection is not supported here. Enter the code manually."); return; }
+      const detector = new Detector({ formats: ["qr_code"] });
+      const scan = async () => { if (!streamRef.current || !videoRef.current || videoRef.current.readyState < 2) { if (streamRef.current) window.setTimeout(scan, 250); return; } const found = await detector.detect(videoRef.current); if (found[0]?.rawValue) { await verify(found[0].rawValue); return; } if (streamRef.current) window.setTimeout(scan, 250); };
+      window.setTimeout(scan, 500);
+    } catch { setError("Camera permission was denied or unavailable. Enter the voucher code manually."); }
+  }
   return (
     <div className="page">
       <section className="section-heading">
@@ -967,34 +996,25 @@ function Voucher({
               placeholder="Example: SV-2042-HOTEL"
             />
           </label>
-          <button className="primary-button" onClick={() => verify()}>
+            <button className="primary-button" onClick={() => void verify()}>
             <CheckCircle2 size={16} /> Validate code
           </button>
         </div>
         <div className="scan-actions">
           <button
             className="outline-button"
-            onClick={() =>
-              accepted &&
-              verify(
-                `SV-${accepted.reference.replace("SS-", "")}-${provider.kind.replaceAll(" ", "").toUpperCase()}`,
-              )
-            }
+            onClick={() => void startCamera()}
           >
             <Camera size={15} /> Scan QR code
           </button>
           <button
             className="text-button"
-            onClick={() =>
-              accepted &&
-              verify(
-                `SV-${accepted.reference.replace("SS-", "")}-${provider.kind.replaceAll(" ", "").toUpperCase()}`,
-              )
-            }
+            onClick={() => { if (accepted) void verify(`SV-${accepted.reference.replace("SS-", "")}-${provider.kind.replaceAll(" ", "").toUpperCase()}`); }}
           >
             Use prototype scan result
           </button>
         </div>
+        {cameraOpen && <div className="camera-preview"><video ref={videoRef} autoPlay muted playsInline /><button className="outline-button" onClick={stopCamera}><X size={15}/> Stop camera</button></div>}
         {error && (
           <p className="warning-note">
             <AlertTriangle size={16} />

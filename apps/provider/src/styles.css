@@ -1122,6 +1122,20 @@ main {
 .scan-actions .text-button {
   margin-top: 0;
 }
+.camera-preview {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  max-width: 360px;
+}
+.camera-preview video {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border: 1px solid #d9e2dd;
+  border-radius: 8px;
+  background: #102d23;
+  object-fit: cover;
+}
 @media (max-width: 700px) {
   .scan-actions {
     align-items: flex-start;
