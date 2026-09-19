@@ -12,3 +12,4 @@ apps/web/subhanhq-amicro-*.tgz
 *.tsbuildinfo
 .DS_Store
 Thumbs.db
+apps/web/data/reviews.preview.ts

@@ -26,6 +26,7 @@ pnpm install
 If Corepack is unavailable, use the pinned pnpm version through npx:
 
 ```bash
+
 npx pnpm@9.15.0 install
 ```
 
