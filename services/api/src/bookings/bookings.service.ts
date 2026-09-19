@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from "@nestjs/comm
 import { randomBytes } from "node:crypto";
 import { PrismaService } from "../database/prisma.service";
 import { AuditService } from "../common/audit.service";
+import { EmailService } from "../common/email.service";
 import { AssignmentStatus, BookingStatus, Language, PaymentStatus, ServiceType, UserRole } from "../common/enums";
 import { AssignBookingDto } from "./dto/assign-booking.dto";
 import { CreateBookingDto } from "./dto/create-booking.dto";
@@ -11,7 +12,7 @@ import { CreateChangeRequestDto } from "./dto/create-change-request.dto";
 
 @Injectable()
 export class BookingsService {
-  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService) {}
+  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly email: EmailService) {}
 
   async create(input: CreateBookingDto, authenticatedUserId?: string) {
     if (!input.consent) throw new BadRequestException("Terms and Privacy consent is required");
@@ -30,6 +31,8 @@ export class BookingsService {
       return tx.booking.create({ data: { reference, touristId: tourist.id, packageId: pkg?.id, destination, travelStart: start, travelEnd: end, travelersCount: input.travelersCount, pickupCity: input.pickupCity, specialRequests: input.specialRequests, status: BookingStatus.CALL_PENDING, events: { create: { eventType: "BOOKING_REQUEST_SUBMITTED", actorId: authenticatedUserId ?? tourist.id, payload: { source: "website", packageSlug: input.packageSlug ?? null } } } }, include: { package: { select: { name: true, slug: true } }, tourist: { select: { fullName: true, email: true } } } });
     });
     await this.audit.record("BOOKING_REQUEST_SUBMITTED", "Booking", booking.id, authenticatedUserId, { reference: booking.reference, packageSlug: input.packageSlug ?? null });
+    const notify = this.email.operationsAddress();
+    if (notify) void this.email.send({ to: notify, subject: `New booking request ${booking.reference}`, html: `<h2>New SwatStay booking request</h2><p><strong>${booking.reference}</strong> for ${booking.tourist.fullName} (${booking.tourist.email}).</p><p>Destination: ${booking.destination}</p>` });
     return { id: booking.id, reference: booking.reference, status: booking.status, destination: booking.destination, package: booking.package, tourist: booking.tourist };
   }
 

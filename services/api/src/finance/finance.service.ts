@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { PaymentStatus, PayoutStatus } from "../common/enums";
 import { PrismaService } from "../database/prisma.service";
 import { AuditService } from "../common/audit.service";
+import { EmailService } from "../common/email.service";
 import { PaymentProofDto } from "./dto/payment-proof.dto";
 import { PaymentReviewDto } from "./dto/payment-review.dto";
 import { CommissionDto } from "./dto/commission.dto";
@@ -11,7 +12,7 @@ import { randomUUID } from "node:crypto";
 
 @Injectable()
 export class FinanceService {
-  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly storage: SupabaseStorageService) {}
+  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly storage: SupabaseStorageService, private readonly email: EmailService) {}
 
   async submitPaymentProof(userId: string, bookingId: string, input: PaymentProofDto, file: StorageFile) {
     const booking = await this.prisma.booking.findUnique({ where: { id: bookingId } });
@@ -28,6 +29,8 @@ export class FinanceService {
       throw error;
     }
     await this.audit.record("PAYMENT_PROOF_SUBMITTED", "Payment", payment.id, userId, { bookingId });
+    const traveler = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true, fullName: true } });
+    if (traveler?.email) void this.email.send({ to: traveler.email, subject: `Payment proof received for ${booking.reference}`, html: `<p>Hello ${traveler.fullName},</p><p>Your payment proof for <strong>${booking.reference}</strong> was received and is waiting for GFix Finance review.</p>` });
     return this.prisma.payment.findUnique({ where: { id: payment.id } });
   }
 
@@ -48,6 +51,9 @@ export class FinanceService {
     const updated = await this.prisma.payment.update({ where: { id }, data: { status: input.status, reviewNote: input.reviewNote, reviewedById: actorId, reviewedAt: new Date() } });
     await this.prisma.booking.update({ where: { id: payment.bookingId }, data: { paymentStatus: input.status } });
     await this.audit.record("PAYMENT_REVIEWED", "Payment", id, actorId, { status: input.status, bookingId: payment.bookingId });
+    const traveler = payment.submittedById ? await this.prisma.user.findUnique({ where: { id: payment.submittedById }, select: { email: true, fullName: true } }) : null;
+    const travelerEmail = traveler?.email;
+    if (travelerEmail) void this.email.send({ to: travelerEmail, subject: `Payment proof ${input.status === PaymentStatus.VERIFIED ? "verified" : "needs review"}`, html: `<p>Hello ${traveler.fullName},</p><p>Your payment proof for booking <strong>${payment.bookingId}</strong> is now <strong>${input.status}</strong>.</p>${input.reviewNote ? `<p>Note: ${input.reviewNote}</p>` : ""}` });
     return updated;
   }
 
