@@ -49,7 +49,7 @@ type Service = {
 type DashboardTab = "overview" | "services" | "itinerary" | "support";
 type DocumentStatus = "Available" | "Pending confirmation" | "Coming after final confirmation";
 type PaymentProofStatus = "Proof submitted" | "Updated proof submitted";
-type LiveTravelerBooking = { id: string; reference: string; package?: { basePrice?: number; currency?: string } | null; payments?: Array<{ amount: number; method: string; status: string }> };
+type LiveTravelerBooking = { id: string; reference: string; destination?: string; travelStart?: string; travelEnd?: string; travelersCount?: number; pickupCity?: string; status?: string; paymentStatus?: string; totalAmount?: number; amountPaid?: number; paymentMethod?: string | null; package?: { name?: string; basePrice?: number; currency?: string } | null; payments?: Array<{ amount: number; method: string; status: string }> };
 
 const dashboardPackage = getPackage("couple-standard-kalam");
 const changeTypes = ["Change travel date", "Change pickup city", "Add traveler", "Upgrade package", "Add activity", "Cancel trip", "Other"];
@@ -87,7 +87,7 @@ export function DashboardView() {
     { id: "guide", title: "Ushu Forest guide", provider: "Naveed Khan · Local guide", detail: "Day 2 · 09:30", status: "Pending", icon: <Mountain size={18}/> },
     { id: "meals", title: "Breakfast and dinner", provider: "Kalam View Guesthouse", detail: "Included in stay", status: "Ready", icon: <Utensils size={18}/> },
   ]);
-  useEffect(() => { getMyBookings<LiveTravelerBooking>().then((items) => setLiveBooking(items[0] ?? null)).catch(() => undefined).finally(() => setLoadingBooking(false)); }, []);
+  useEffect(() => { getMyBookings<LiveTravelerBooking>().then((items) => { const booking = items[0] ?? null; setLiveBooking(booking); const latest = booking?.payments?.[0]; if (latest) setPaymentProofStatus(latest.status === "VERIFIED" ? "Proof submitted" : latest.status === "REJECTED" ? "Proof submitted" : "Proof submitted"); }).catch(() => undefined).finally(() => setLoadingBooking(false)); }, []);
 
   if (ready && !traveler) return <NewTravelerDashboard name="Traveler"/>;
   if (ready && traveler && !loadingBooking && !liveBooking) return <NewTravelerDashboard name={traveler.name}/>;
@@ -111,10 +111,10 @@ export function DashboardView() {
     <section className="border-b border-border bg-white py-4 md:py-5">
       <div className="container">
         <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-end">
-          <div><div className="eyebrow">MY TRIP · SS-2048</div><h1 className="font-display text-2xl font-bold leading-tight text-pine sm:text-3xl">Welcome back, {traveler?.name.split(" ")[0] || "Ayesha"}</h1><p className="mt-1 max-w-2xl text-sm leading-5 text-stone">Your Kalam trip is confirmed. Review the payment proof, provider arrangements, itinerary, and support requests below.</p></div>
+          <div><div className="eyebrow">MY TRIP · {liveBooking?.reference ?? "NO ACTIVE REFERENCE"}</div><h1 className="font-display text-2xl font-bold leading-tight text-pine sm:text-3xl">Welcome back, {traveler?.name.split(" ")[0] || "Traveler"}</h1><p className="mt-1 max-w-2xl text-sm leading-5 text-stone">{liveBooking ? `Your ${liveBooking.destination ?? "Swat"} trip details, payments, provider arrangements, and support requests are in one place.` : "Review your confirmed trip details, payments, provider arrangements, and support requests below."}</p></div>
           <div className="flex flex-wrap items-center gap-2"><Link href="/packages" className="button min-h-9 border-border bg-white px-3 text-xs text-pine hover:bg-mist sm:text-sm">Plan another trip <ArrowUpRight size={15}/></Link><button type="button" onClick={() => setLastUpdated("Just now")} className="button min-h-9 bg-pine px-3 text-xs text-white hover:bg-[#0e2c22] sm:text-sm"><RefreshCw size={15}/> Refresh status</button><span className="text-[11px] text-stone">Updated: {lastUpdated}</span></div>
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-4"><Metric icon={<BadgeCheck/>} label="Trip status" value="Confirmed" tone="green"/><Metric icon={<CalendarDays/>} label="Travel dates" value="12–14 Oct 2026"/><Metric icon={<WalletCards/>} label="Payment" value="Proof under review" tone="amber"/><Metric icon={<MessageSquare/>} label="Support desk" value="1 open request" tone="blue"/></div>
+        <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-4"><Metric icon={<BadgeCheck/>} label="Trip status" value={liveBooking?.status === "ACTIVE" ? "Active" : liveBooking?.status === "COMPLETED" ? "Completed" : "Confirmed"} tone="green"/><Metric icon={<CalendarDays/>} label="Travel dates" value={liveBooking?.travelStart && liveBooking?.travelEnd ? `${new Date(liveBooking.travelStart).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}–${new Date(liveBooking.travelEnd).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}` : "Awaiting confirmation"}/><Metric icon={<WalletCards/>} label="Payment" value={liveBooking?.paymentStatus === "VERIFIED" ? "Verified" : liveBooking?.paymentStatus === "PROOF_SUBMITTED" ? "Proof under review" : "Payment pending"} tone="amber"/><Metric icon={<MessageSquare/>} label="Support desk" value={supportStatus.includes("Open") ? "1 open request" : "No open request"} tone="blue"/></div>
       </div>
     </section>
 
@@ -128,10 +128,10 @@ export function DashboardView() {
       <div className="container grid gap-5 lg:grid-cols-[1.3fr_.7fr] lg:items-start">
         <div className="space-y-5">
           <div className={`${panelClass("overview")} space-y-5`} role="tabpanel">
-            <TripSummary/>
+            <TripSummary booking={liveBooking}/>
             <ActivityTimeline checkedIn={checkedIn}/>
             <ItinerarySection/>
-            <div className="grid gap-4 xl:grid-cols-2"><CallConfirmation/><PaymentBreakdown proofStatus={paymentProofStatus} onUpload={() => setPaymentProofOpen(true)} totalAmount={liveBooking?.package?.basePrice ?? 48000} amountPaid={liveBooking?.payments?.filter((payment) => payment.status !== "REJECTED" && payment.status !== "REFUNDED").reduce((total, payment) => total + payment.amount, 0) ?? 15000} paymentMethod={liveBooking?.payments?.[0]?.method ?? "Bank transfer"}/></div>
+            <div className="grid gap-4 xl:grid-cols-2"><CallConfirmation/><PaymentBreakdown proofStatus={paymentProofStatus} onUpload={() => setPaymentProofOpen(true)} totalAmount={liveBooking?.totalAmount ?? liveBooking?.package?.basePrice ?? 48000} amountPaid={liveBooking?.amountPaid ?? liveBooking?.payments?.filter((payment) => payment.status !== "REJECTED" && payment.status !== "REFUNDED").reduce((total, payment) => total + payment.amount, 0) ?? 15000} paymentMethod={liveBooking?.paymentMethod ?? liveBooking?.payments?.[0]?.method ?? "Bank transfer"}/></div>
           </div>
 
           <div className={`${panelClass("services")} space-y-5`} role="tabpanel">
@@ -171,10 +171,13 @@ function NewTravelerDashboard({ name }: { name: string }) {
   </>;
 }
 
-function TripSummary() {
+function TripSummary({ booking }: { booking: LiveTravelerBooking | null }) {
+  const destination = booking?.destination ?? "Kalam";
+  const start = booking?.travelStart ? new Date(booking.travelStart).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : "12 Oct";
+  const end = booking?.travelEnd ? new Date(booking.travelEnd).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : "14 Oct";
   return <section className="rounded-brand border border-border bg-white">
-    <div className="flex flex-col justify-between gap-2 border-b border-border p-4 sm:flex-row sm:items-start md:p-5"><div><span className="text-xs font-semibold text-river">SS-2048 · COUPLE STANDARD</span><h2 className="mt-1 font-display text-xl font-bold text-charcoal sm:text-2xl">Kalam, 3 days</h2><p className="mt-1 flex items-center gap-1 text-sm text-stone"><MapPin size={14} className="text-river"/> Mingora → Kalam → Ushu Forest</p></div><span className="inline-flex w-fit items-center gap-1 rounded-md border border-[#c4d7cb] bg-[#e8efea] px-2 py-1 text-xs font-semibold text-pine"><CheckCircle2 size={13}/> Confirmed</span></div>
-    <div className="grid grid-cols-3 gap-2 p-4 md:p-5"><Info label="Travel dates" value="12–14 Oct"/><Info label="Travelers" value="2 people"/><Info label="Pickup" value="Mingora · 08:00"/></div>
+    <div className="flex flex-col justify-between gap-2 border-b border-border p-4 sm:flex-row sm:items-start md:p-5"><div><span className="text-xs font-semibold text-river">{booking?.reference ?? "SS-2048"} · {booking?.package?.name ?? "COUPLE STANDARD"}</span><h2 className="mt-1 font-display text-xl font-bold text-charcoal sm:text-2xl">{destination} trip</h2><p className="mt-1 flex items-center gap-1 text-sm text-stone"><MapPin size={14} className="text-river"/> {booking?.pickupCity ?? "Mingora"} → {destination}</p></div><span className="inline-flex w-fit items-center gap-1 rounded-md border border-[#c4d7cb] bg-[#e8efea] px-2 py-1 text-xs font-semibold text-pine"><CheckCircle2 size={13}/> {booking?.status === "ACTIVE" ? "Active" : booking?.status === "COMPLETED" ? "Completed" : "Confirmed"}</span></div>
+    <div className="grid grid-cols-3 gap-2 p-4 md:p-5"><Info label="Travel dates" value={`${start}–${end}`}/><Info label="Travelers" value={`${booking?.travelersCount ?? 2} people`}/><Info label="Pickup" value={booking?.pickupCity ?? "Mingora"}/></div>
   </section>;
 }
 
