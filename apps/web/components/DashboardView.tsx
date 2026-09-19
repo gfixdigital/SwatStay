@@ -37,6 +37,7 @@ import { getPackage } from "@/data/packages";
 import { useDemoAuth } from "@/hooks/useDemoAuth";
 import { createChangeRequest, getMyBookings, submitPaymentProof } from "@/lib/api";
 import { useBookingRealtime } from "@/hooks/useBookingRealtime";
+import { WeatherPreview } from "@/components/WeatherPreview";
 
 type Service = {
   id: string;
@@ -135,6 +136,7 @@ export function DashboardView() {
         <div className="space-y-5">
           <div className={`${panelClass("overview")} space-y-5`} role="tabpanel">
             <TripSummary booking={liveBooking}/>
+            <WeatherPreview destination={liveBooking?.destination ?? "Swat"}/>
             <ActivityTimeline checkedIn={checkedIn}/>
             <ItinerarySection booking={liveBooking}/>
             <div className="grid gap-4 xl:grid-cols-2"><CallConfirmation/><PaymentBreakdown proofStatus={paymentProofStatus} onUpload={() => setPaymentProofOpen(true)} totalAmount={liveBooking?.totalAmount ?? liveBooking?.package?.basePrice ?? 48000} amountPaid={liveBooking?.amountPaid ?? liveBooking?.payments?.filter((payment) => payment.status !== "REJECTED" && payment.status !== "REFUNDED").reduce((total, payment) => total + payment.amount, 0) ?? 15000} paymentMethod={liveBooking?.paymentMethod ?? liveBooking?.payments?.[0]?.method ?? "Bank transfer"}/></div>

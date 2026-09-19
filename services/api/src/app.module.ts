@@ -18,9 +18,10 @@ import { CatalogModule } from "./catalog/catalog.module";
 import { StorageModule } from "./storage/storage.module";
 import { AdminDataModule } from "./admin-data/admin-data.module";
 import { PublishingModule } from "./publishing/publishing.module";
+import { WeatherModule } from "./weather/weather.module";
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]), CommonModule, DatabaseModule, StorageModule, AuthModule, UsersModule, PrivacyModule, IntakeModule, SupportModule, FinanceModule, PackagesModule, BookingsModule, CatalogModule, AdminDataModule, PublishingModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]), CommonModule, DatabaseModule, StorageModule, AuthModule, UsersModule, PrivacyModule, IntakeModule, SupportModule, FinanceModule, PackagesModule, BookingsModule, CatalogModule, AdminDataModule, PublishingModule, WeatherModule],
   controllers: [HealthController],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
