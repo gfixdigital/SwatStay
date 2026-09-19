@@ -49,7 +49,7 @@ type Service = {
 type DashboardTab = "overview" | "services" | "itinerary" | "support";
 type DocumentStatus = "Available" | "Pending confirmation" | "Coming after final confirmation";
 type PaymentProofStatus = "Proof submitted" | "Updated proof submitted";
-type LiveTravelerBooking = { id: string; reference: string; destination?: string; travelStart?: string; travelEnd?: string; travelersCount?: number; pickupCity?: string; status?: string; paymentStatus?: string; totalAmount?: number; amountPaid?: number; paymentMethod?: string | null; package?: { name?: string; basePrice?: number; currency?: string; itinerary?: unknown } | null; payments?: Array<{ amount: number; method: string; status: string }>; items?: Array<{ id: string; serviceType: string; title: string; status: string; provider?: { businessName?: string; location?: string } | null }>; events?: Array<{ eventType: string; createdAt: string; payload?: unknown }>; vouchers?: Array<{ code: string; status: string; expiresAt?: string | null }> };
+type LiveTravelerBooking = { id: string; reference: string; destination?: string; travelStart?: string; travelEnd?: string; travelersCount?: number; pickupCity?: string; status?: string; paymentStatus?: string; totalAmount?: number; amountPaid?: number; paymentMethod?: string | null; package?: { name?: string; basePrice?: number; currency?: string; itinerary?: Array<{ day?: string; title?: string; description?: string }> } | null; payments?: Array<{ amount: number; method: string; status: string }>; items?: Array<{ id: string; serviceType: string; title: string; status: string; provider?: { businessName?: string; location?: string } | null }>; events?: Array<{ eventType: string; createdAt: string; payload?: unknown }>; vouchers?: Array<{ code: string; status: string; expiresAt?: string | null }> };
 
 const dashboardPackage = getPackage("couple-standard-kalam");
 const changeTypes = ["Change travel date", "Change pickup city", "Add traveler", "Upgrade package", "Add activity", "Cancel trip", "Other"];
@@ -132,12 +132,12 @@ export function DashboardView() {
           <div className={`${panelClass("overview")} space-y-5`} role="tabpanel">
             <TripSummary booking={liveBooking}/>
             <ActivityTimeline checkedIn={checkedIn}/>
-            <ItinerarySection/>
+            <ItinerarySection booking={liveBooking}/>
             <div className="grid gap-4 xl:grid-cols-2"><CallConfirmation/><PaymentBreakdown proofStatus={paymentProofStatus} onUpload={() => setPaymentProofOpen(true)} totalAmount={liveBooking?.totalAmount ?? liveBooking?.package?.basePrice ?? 48000} amountPaid={liveBooking?.amountPaid ?? liveBooking?.payments?.filter((payment) => payment.status !== "REJECTED" && payment.status !== "REFUNDED").reduce((total, payment) => total + payment.amount, 0) ?? 15000} paymentMethod={liveBooking?.paymentMethod ?? liveBooking?.payments?.[0]?.method ?? "Bank transfer"}/></div>
           </div>
 
           <div className={`${panelClass("services")} space-y-5`} role="tabpanel">
-            <ServiceVouchers services={services} checkedIn={checkedIn}/>
+            <ServiceVouchers services={services} checkedIn={checkedIn} voucher={liveBooking?.vouchers?.[0]}/>
             <DocumentsSection proofStatus={paymentProofStatus}/>
           </div>
 
@@ -202,8 +202,8 @@ function PaymentBreakdown({ proofStatus, onUpload, totalAmount, amountPaid, paym
   </section>;
 }
 
-function ServiceVouchers({ services, checkedIn }: { services: Service[]; checkedIn: boolean }) {
-  return <section className="rounded-brand border border-border bg-white p-4 md:p-5"><div className="flex items-start justify-between gap-2"><div><div className="eyebrow mb-1">SERVICES</div><h2 className="font-display text-xl font-bold sm:text-2xl">Provider arrangements</h2></div><span className="text-xs text-stone">Static preview</span></div><div className="mt-3 divide-y divide-border">{services.map((service) => <ServiceRow key={service.id} service={service} checkedIn={checkedIn}/>)}</div></section>;
+function ServiceVouchers({ services, checkedIn, voucher }: { services: Service[]; checkedIn: boolean; voucher?: { code: string; status: string } }) {
+  return <section className="rounded-brand border border-border bg-white p-4 md:p-5"><div className="flex items-start justify-between gap-2"><div><div className="eyebrow mb-1">SERVICES</div><h2 className="font-display text-xl font-bold sm:text-2xl">Provider arrangements</h2></div><span className={`text-xs ${voucher ? "font-semibold text-pine" : "text-stone"}`}>{voucher ? `Voucher ${voucher.status.toLowerCase()}` : "Voucher pending confirmation"}</span></div>{voucher && <p className="mt-2 rounded-md bg-mist px-3 py-2 text-xs text-stone">Service voucher reference: <strong className="font-mono text-charcoal">{voucher.code}</strong></p>}<div className="mt-3 divide-y divide-border">{services.map((service) => <ServiceRow key={service.id} service={service} checkedIn={checkedIn}/>)}</div></section>;
 }
 
 function DocumentsSection({ proofStatus }: { proofStatus: PaymentProofStatus }) {
@@ -229,8 +229,9 @@ function DocumentItem({ title, detail, status, icon }: { title: string; detail: 
   return <div className="flex items-start gap-3 rounded-brand border border-border bg-snow p-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white text-river">{icon}</span><div className="min-w-0 flex-1"><strong className="block text-sm text-charcoal">{title}</strong><span className="mt-0.5 block text-xs text-stone">{detail}</span><span className={`mt-2 inline-flex rounded-md border px-2 py-1 text-[11px] font-semibold ${available ? "border-[#c4d7cb] bg-[#e8efea] text-pine" : "border-border bg-white text-stone"}`}>{status}</span></div>{available && <button type="button" onClick={download} className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-river hover:bg-mist" title={`Download ${title}`} aria-label={`Download ${title}`}><Download size={15}/></button>}</div>;
 }
 
-function ItinerarySection() {
-  return <section className="rounded-brand border border-border bg-white p-4 md:p-5"><div className="flex items-start justify-between gap-3"><div><div className="eyebrow mb-1">DAY-BY-DAY ITINERARY</div><h2 className="font-display text-xl font-bold text-charcoal sm:text-2xl">Your Kalam plan</h2></div><Route size={20} className="shrink-0 text-river"/></div><div className="mt-4 space-y-3">{dashboardPackage?.itinerary.map((item, index) => <article key={item.day} className="grid grid-cols-[44px_1fr] gap-3 rounded-brand border border-border bg-snow p-3"><span className="grid h-11 w-11 place-items-center rounded-md bg-pine font-display text-sm font-bold text-white">{index + 1}</span><div><span className="text-xs font-semibold text-river">{item.day}</span><h3 className="text-sm font-semibold text-charcoal">{item.title}</h3><p className="mt-1 text-sm leading-5 text-stone">{item.description}</p></div></article>)}</div></section>;
+function ItinerarySection({ booking }: { booking: LiveTravelerBooking | null }) {
+  const itinerary = booking?.package?.itinerary?.length ? booking.package.itinerary : dashboardPackage?.itinerary ?? [];
+  return <section className="rounded-brand border border-border bg-white p-4 md:p-5"><div className="flex items-start justify-between gap-3"><div><div className="eyebrow mb-1">DAY-BY-DAY ITINERARY</div><h2 className="font-display text-xl font-bold text-charcoal sm:text-2xl">Your {booking?.destination ?? "Swat"} plan</h2></div><Route size={20} className="shrink-0 text-river"/></div><div className="mt-4 space-y-3">{itinerary.map((item, index) => <article key={`${item.day ?? "day"}-${index}`} className="grid grid-cols-[44px_1fr] gap-3 rounded-brand border border-border bg-snow p-3"><span className="grid h-11 w-11 place-items-center rounded-md bg-pine font-display text-sm font-bold text-white">{index + 1}</span><div><span className="text-xs font-semibold text-river">{item.day ?? `Day ${index + 1}`}</span><h3 className="text-sm font-semibold text-charcoal">{item.title}</h3><p className="mt-1 text-sm leading-5 text-stone">{item.description}</p></div></article>)}</div></section>;
 }
 
 function ActivityTimeline({ checkedIn }: { checkedIn: boolean }) {
