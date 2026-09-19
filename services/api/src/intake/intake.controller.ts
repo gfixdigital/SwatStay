@@ -1,10 +1,15 @@
-import { Body, Controller, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import { success } from "../common/api-response";
 import { ContactDto } from "./dto/contact.dto";
 import { CustomTripDto } from "./dto/custom-trip.dto";
 import { ProviderRegistrationDto } from "./dto/provider-registration.dto";
 import { IntakeService } from "./intake.service";
+import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { RolesGuard } from "../auth/roles.guard";
+import { Roles } from "../auth/roles.decorator";
+import { UserRole } from "../common/enums";
+import { AuthenticatedUser } from "../auth/auth.types";
 
 @Controller()
 @Throttle({ default: { limit: 5, ttl: 900000 } })
@@ -19,4 +24,14 @@ export class IntakeController {
 
   @Post("providers/register")
   async providerRegistration(@Body() input: ProviderRegistrationDto) { return success(await this.intake.providerRegistration(input), "Provider registration received"); }
+
+  @Get("admin/contact-submissions")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.OPERATIONS, UserRole.SUPPORT)
+  async adminContacts() { return success(await this.intake.adminContacts(), "Contact submissions fetched successfully"); }
+
+  @Patch("admin/contact-submissions/:id")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.OPERATIONS, UserRole.SUPPORT)
+  async updateContact(@Req() request: { user: AuthenticatedUser }, @Param("id") id: string, @Body("status") status: string) { return success(await this.intake.updateContact(request.user.id, id, status), "Contact submission updated"); }
 }

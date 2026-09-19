@@ -18,6 +18,14 @@ export class IntakeService {
     return { reference: record.id, status: record.status };
   }
 
+  async adminContacts() { return this.prisma.contactSubmission.findMany({ orderBy: { createdAt: "desc" } }); }
+
+  async updateContact(actorId: string, id: string, status: string) {
+    const record = await this.prisma.contactSubmission.update({ where: { id }, data: { status } });
+    await this.audit.record("CONTACT_STATUS_UPDATED", "ContactSubmission", id, actorId, { status });
+    return record;
+  }
+
   async customTrip(input: CustomTripDto, userId?: string) {
     if (!input.consent) throw new BadRequestException("Terms and Privacy consent is required");
     const record = await this.prisma.customTripRequest.create({ data: { userId, name: input.name, email: input.email, phone: input.phone, destination: input.destination, travelStart: input.travelStart ? new Date(input.travelStart) : undefined, travelEnd: input.travelEnd ? new Date(input.travelEnd) : undefined, travelers: input.travelers, pickupCity: input.pickupCity, accommodation: input.accommodation, interests: input.interests, budget: input.budget, notes: input.notes, consent: input.consent } });
