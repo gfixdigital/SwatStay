@@ -55,6 +55,11 @@ export class FinanceController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   async payouts() { return success(await this.finance.listPayouts(), "Payouts fetched successfully"); }
 
+  @Get("admin/finance/commissions")
+  @Roles(...financeRoles)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async commissions() { return success(await this.finance.listCommissions(), "Commissions fetched successfully"); }
+
   @Patch("admin/payouts/:id/status")
   @Roles(...financeRoles)
   @UseGuards(JwtAuthGuard, RolesGuard)

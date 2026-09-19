@@ -68,6 +68,7 @@ export class FinanceService {
   }
 
   getBookingFinance(bookingId: string) { return this.prisma.booking.findUnique({ where: { id: bookingId }, include: { payments: { orderBy: { submittedAt: "desc" } }, commissions: { include: { provider: true, payout: true } } } }); }
+  listCommissions() { return this.prisma.commission.findMany({ include: { booking: { select: { reference: true } }, provider: { select: { businessName: true } }, payout: { select: { status: true } }, bookingItem: { select: { serviceType: true } } }, orderBy: { createdAt: "desc" } }); }
   listPayouts() { return this.prisma.payout.findMany({ include: { provider: true, commission: true }, orderBy: { createdAt: "desc" } }); }
 
   async updatePayout(actorId: string, id: string, input: PayoutStatusDto) {
