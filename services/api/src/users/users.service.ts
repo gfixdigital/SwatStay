@@ -19,5 +19,17 @@ export class UsersService {
     return this.getProfile(updated.id);
   }
 
-  getBookings(userId: string) { return this.prisma.booking.findMany({ where: { touristId: userId }, include: { package: { select: { name: true, basePrice: true, currency: true } }, payments: { orderBy: { submittedAt: "desc" } } }, orderBy: { createdAt: "desc" } }); }
+  getBookings(userId: string) {
+    return this.prisma.booking.findMany({
+      where: { touristId: userId },
+      include: {
+        package: { select: { name: true, basePrice: true, currency: true, itinerary: true } },
+        items: { include: { provider: { select: { businessName: true, location: true } } }, orderBy: { serviceType: "asc" } },
+        payments: { orderBy: { submittedAt: "desc" } },
+        events: { orderBy: { createdAt: "asc" } },
+        vouchers: { select: { id: true, code: true, status: true, expiresAt: true, payload: true, updatedAt: true }, orderBy: { createdAt: "desc" } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  }
 }
