@@ -7,6 +7,7 @@ import { AssignBookingDto } from "./dto/assign-booking.dto";
 import { CreateBookingDto } from "./dto/create-booking.dto";
 import { ProviderAssignmentDto } from "./dto/provider-assignment.dto";
 import { ProviderDecisionDto } from "./dto/provider-decision.dto";
+import { CreateChangeRequestDto } from "./dto/create-change-request.dto";
 
 @Injectable()
 export class BookingsService {
@@ -150,6 +151,27 @@ export class BookingsService {
     const items = await this.prisma.bookingItem.findMany({ where: { bookingId: item.booking.id } });
     if (input.status === AssignmentStatus.REJECTED) await this.prisma.booking.update({ where: { id: item.booking.id }, data: { status: BookingStatus.REQUIRES_ADMIN_ACTION } });
     else if (items.length > 0 && items.every((entry) => entry.providerId && entry.status === AssignmentStatus.ACCEPTED)) await this.prisma.booking.update({ where: { id: item.booking.id }, data: { status: BookingStatus.CONFIRMED } });
+    return updated;
+  }
+
+  async createChangeRequest(userId: string, bookingId: string, input: CreateChangeRequestDto) {
+    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, select: { id: true, touristId: true, reference: true } });
+    if (!booking) throw new NotFoundException("Booking not found");
+    if (booking.touristId !== userId) throw new BadRequestException("This booking does not belong to the current traveler");
+    const request = await this.prisma.tripChangeRequest.create({ data: { bookingId, requesterId: userId, changeType: input.changeType, message: input.message, preferredCallbackAt: input.preferredCallbackAt ? new Date(input.preferredCallbackAt) : undefined, priority: input.priority ?? "NORMAL", logs: [{ action: "REQUEST_SUBMITTED", actorId: userId, at: new Date().toISOString() }] } });
+    await this.audit.recordBookingEvent(bookingId, "TRIP_CHANGE_REQUEST_SUBMITTED", userId, { changeRequestId: request.id, changeType: request.changeType });
+    return { ...request, bookingReference: booking.reference };
+  }
+
+  async changeRequests() { return this.prisma.tripChangeRequest.findMany({ include: { booking: { select: { reference: true } }, requester: { select: { fullName: true, phone: true } } }, orderBy: { createdAt: "desc" } }); }
+
+  async updateChangeRequest(actorId: string, id: string, input: { status?: string; assignedTo?: string | null; resolutionNote?: string }) {
+    const current = await this.prisma.tripChangeRequest.findUnique({ where: { id } });
+    if (!current) throw new NotFoundException("Trip change request not found");
+    const log = { action: input.status ?? "UPDATED", actorId, at: new Date().toISOString(), note: input.resolutionNote ?? null };
+    const logs = Array.isArray(current.logs) ? [...current.logs, log] : [log];
+    const updated = await this.prisma.tripChangeRequest.update({ where: { id }, data: { status: input.status, assignedTo: input.assignedTo, resolutionNote: input.resolutionNote, logs } });
+    await this.audit.recordBookingEvent(current.bookingId, "TRIP_CHANGE_REQUEST_UPDATED", actorId, { changeRequestId: id, status: input.status });
     return updated;
   }
 

@@ -110,6 +110,8 @@ model User {
   paymentSubmissions Payment[] @relation("PaymentSubmitter")
   paymentReviews    Payment[] @relation("PaymentReviewer")
   payoutApprovals   Payout[] @relation("PayoutApprover")
+  tripChangeRequests TripChangeRequest[]
+  createdVouchers ServiceVoucher[]
 }
 
 model TouristProfile {
@@ -218,6 +220,40 @@ model Booking {
   events BookingEvent[]
   payments Payment[]
   commissions Commission[]
+  tripChangeRequests TripChangeRequest[]
+  vouchers ServiceVoucher[]
+}
+
+model TripChangeRequest {
+  id                   String   @id @default(uuid())
+  bookingId            String
+  requesterId          String?
+  changeType           String
+  message              String
+  preferredCallbackAt  DateTime?
+  status               String   @default("NEW")
+  priority             String   @default("NORMAL")
+  assignedTo           String?
+  resolutionNote       String?
+  logs                 Json?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  booking              Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  requester            User?    @relation(fields: [requesterId], references: [id], onDelete: SetNull)
+}
+
+model ServiceVoucher {
+  id          String   @id @default(uuid())
+  bookingId   String
+  code        String   @unique
+  status      String   @default("DRAFT")
+  payload     Json
+  createdById String?
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
 }
 
 model BookingItem {

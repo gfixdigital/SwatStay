@@ -1,5 +1,5 @@
 import { CalendarClock, CheckCircle2, Eye, MessageSquarePlus, PhoneCall, RefreshCcw, XCircle } from "lucide-react";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AdminModal } from "../components/AdminModal";
 import { AdminToast } from "../components/AdminToast";
@@ -13,15 +13,19 @@ import { Timeline } from "../components/Timeline";
 import { tripChangeRequests as initialRequests } from "../data/tripChangeRequests";
 import { useBookingsPreview } from "../hooks/useBookingsPreview";
 import { usePreviewState } from "../hooks/usePreviewState";
+import { adminRequest, getAdminToken } from "../lib/adminApi";
 import type { TripChangeRequest, TripChangeStatus, TripChangeType } from "../types/admin";
 
 type Decision = "approve" | "reject" | "apply" | null;
 const changeTypes: TripChangeType[] = ["Change travel date", "Change pickup city", "Add traveler", "Upgrade package", "Add activity", "Cancel trip", "Other"];
+type LiveChangeRequest = { id: string; bookingId: string; changeType: string; message: string; preferredCallbackAt?: string | null; status: string; priority: string; assignedTo?: string | null; resolutionNote?: string | null; createdAt: string; booking?: { reference?: string }; requester?: { fullName?: string; phone?: string } };
+function mapChangeRequest(item: LiveChangeRequest): TripChangeRequest { return { id: item.id, bookingId: item.bookingId, bookingReference: item.booking?.reference ?? "Unlinked booking", touristName: item.requester?.fullName ?? "Traveler", phone: item.requester?.phone ?? "", changeType: (changeTypes.includes(item.changeType as TripChangeType) ? item.changeType : "Other") as TripChangeType, message: item.message, currentValue: "To be confirmed", requestedValue: item.message, preferredCallbackAt: item.preferredCallbackAt ?? "", status: item.status === "APPROVED" ? "Approved" : item.status === "REJECTED" ? "Rejected" : item.status === "APPLIED" ? "Applied" : item.status === "CALLBACK_SCHEDULED" ? "Callback scheduled" : item.status === "UNDER_REVIEW" ? "Under review" : "New", priority: item.priority === "URGENT" ? "Urgent" : item.priority === "HIGH" ? "High" : "Normal", assignedTo: item.assignedTo ?? "Unassigned", createdAt: item.createdAt, resolutionNote: item.resolutionNote ?? "", logs: [] }; }
+function apiChangeStatus(status: TripChangeStatus) { return ({ New: "NEW", "Callback scheduled": "CALLBACK_SCHEDULED", "Under review": "UNDER_REVIEW", Approved: "APPROVED", Rejected: "REJECTED", Applied: "APPLIED" } as const)[status]; }
 
 export function TripChangeRequestsPage() {
   const { id } = useParams();
   const { updateBooking } = useBookingsPreview();
-  const [requests, setRequests] = usePreviewState("swatstay.admin.trip-change-requests", initialRequests);
+  const [requests, setRequests] = usePreviewState<TripChangeRequest[]>("swatstay.admin.trip-change-requests", getAdminToken() ? [] : initialRequests);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("All");
   const [type, setType] = useState("All");
@@ -32,6 +36,7 @@ export function TripChangeRequestsPage() {
   const [logNote, setLogNote] = useState("");
   const [decision, setDecision] = useState<Decision>(null);
   const [toast, setToast] = useState("");
+  useEffect(() => { if (!getAdminToken()) return; adminRequest<LiveChangeRequest[]>("/admin/change-requests").then((data) => setRequests(data.map(mapChangeRequest))).catch((reason: Error) => setToast(reason.message)); }, [setRequests]);
 
   const selected = requests.find((request) => request.id === selectedId) ?? null;
   const visible = useMemo(() => requests.filter((request) => {
@@ -56,6 +61,7 @@ export function TripChangeRequestsPage() {
       ...changes,
       logs: log ? [...request.logs, { id: `log-${Date.now()}`, actor: "Current admin", action: log.action, note: log.note, time: "Just now" }] : request.logs,
     } : request));
+    if (getAdminToken()) void adminRequest(`/admin/change-requests/${idToUpdate}`, { method: "PATCH", body: JSON.stringify({ status: changes.status ? apiChangeStatus(changes.status) : undefined, assignedTo: changes.assignedTo, resolutionNote: changes.resolutionNote }) }).catch((reason: Error) => setToast(reason.message));
   }
 
   function saveReview(event: FormEvent<HTMLFormElement>) {

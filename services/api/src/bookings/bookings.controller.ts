@@ -11,6 +11,7 @@ import { BookingNoteDto } from "./dto/booking-note.dto";
 import { CreateBookingDto } from "./dto/create-booking.dto";
 import { ProviderAssignmentDto } from "./dto/provider-assignment.dto";
 import { ProviderDecisionDto } from "./dto/provider-decision.dto";
+import { CreateChangeRequestDto } from "./dto/create-change-request.dto";
 import { BookingsService } from "./bookings.service";
 
 type RequestWithOptionalUser = { user?: { id: string } };
@@ -82,4 +83,18 @@ export class BookingsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.PROVIDER)
   async providerDecision(@Req() req: RequestWithUser, @Param("itemId") itemId: string, @Body() input: ProviderDecisionDto) { return success(await this.bookings.providerDecision(req.user.id, itemId, input), "Provider assignment decision saved"); }
+
+  @Post("bookings/:id/change-requests")
+  @UseGuards(JwtAuthGuard)
+  async createChangeRequest(@Req() req: RequestWithUser, @Param("id") id: string, @Body() input: CreateChangeRequestDto) { return success(await this.bookings.createChangeRequest(req.user.id, id, input), "Trip change request received"); }
+
+  @Get("admin/change-requests")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(...adminBookingRoles)
+  async changeRequests() { return success(await this.bookings.changeRequests(), "Trip change requests fetched successfully"); }
+
+  @Patch("admin/change-requests/:id")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(...adminBookingRoles)
+  async updateChangeRequest(@Req() req: RequestWithUser, @Param("id") id: string, @Body() input: { status?: string; assignedTo?: string | null; resolutionNote?: string }) { return success(await this.bookings.updateChangeRequest(req.user.id, id, input), "Trip change request updated"); }
 }
