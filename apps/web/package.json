@@ -5,6 +5,7 @@
   "dependencies": {
     "@swatstay/config": "workspace:*",
     "@swatstay/types": "workspace:*",
+    "@supabase/supabase-js": "^2.116.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.4.7",

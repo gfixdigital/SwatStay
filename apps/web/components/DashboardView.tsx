@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
@@ -36,6 +36,7 @@ import {
 import { getPackage } from "@/data/packages";
 import { useDemoAuth } from "@/hooks/useDemoAuth";
 import { createChangeRequest, getMyBookings, submitPaymentProof } from "@/lib/api";
+import { useBookingRealtime } from "@/hooks/useBookingRealtime";
 
 type Service = {
   id: string;
@@ -79,6 +80,7 @@ export function DashboardView() {
   const [paymentProofStatus, setPaymentProofStatus] = useState<PaymentProofStatus>("Proof submitted");
   const [travelerBookings, setTravelerBookings] = useState<LiveTravelerBooking[]>([]);
   const [selectedBookingId, setSelectedBookingId] = useState("");
+  const [realtimeRefresh, setRealtimeRefresh] = useState(0);
   const [loadingBooking, setLoadingBooking] = useState(true);
   const [supportStatus, setSupportStatus] = useState("SUP-82 · Meal preference · Open");
   const [lastUpdated, setLastUpdated] = useState("Not refreshed yet");
@@ -88,8 +90,10 @@ export function DashboardView() {
     { id: "guide", title: "Ushu Forest guide", provider: "Naveed Khan · Local guide", detail: "Day 2 · 09:30", status: "Pending", icon: <Mountain size={18}/> },
     { id: "meals", title: "Breakfast and dinner", provider: "Kalam View Guesthouse", detail: "Included in stay", status: "Ready", icon: <Utensils size={18}/> },
   ]);
-  useEffect(() => { getMyBookings<LiveTravelerBooking>().then((items) => { const list = items ?? []; setTravelerBookings(list); setSelectedBookingId(list[0]?.id ?? ""); const booking = list[0] ?? null; const latest = booking?.payments?.[0]; if (latest) setPaymentProofStatus("Proof submitted"); if (booking?.items?.length) setServices(booking.items.map((item) => ({ id: item.id, title: item.title, provider: item.provider?.businessName ?? "Provider to be confirmed", detail: item.provider?.location ?? item.serviceType.replaceAll("_", " "), status: item.status === "COMPLETED" ? "Checked in" : item.status === "ACCEPTED" ? "Ready" : "Pending", icon: item.serviceType.includes("TRANSPORT") ? <CarFront size={18}/> : item.serviceType.includes("GUIDE") ? <Mountain size={18}/> : item.serviceType.includes("RESTAURANT") ? <Utensils size={18}/> : <Hotel size={18}/> }))); }).catch(() => undefined).finally(() => setLoadingBooking(false)); }, []);
+  useEffect(() => { getMyBookings<LiveTravelerBooking>().then((items) => { const list = items ?? []; setTravelerBookings(list); setSelectedBookingId((current) => current || list[0]?.id || ""); const booking = list[0] ?? null; const latest = booking?.payments?.[0]; if (latest) setPaymentProofStatus("Proof submitted"); if (booking?.items?.length) setServices(booking.items.map((item) => ({ id: item.id, title: item.title, provider: item.provider?.businessName ?? "Provider to be confirmed", detail: item.provider?.location ?? item.serviceType.replaceAll("_", " "), status: item.status === "COMPLETED" ? "Checked in" : item.status === "ACCEPTED" ? "Ready" : "Pending", icon: item.serviceType.includes("TRANSPORT") ? <CarFront size={18}/> : item.serviceType.includes("GUIDE") ? <Mountain size={18}/> : item.serviceType.includes("RESTAURANT") ? <Utensils size={18}/> : <Hotel size={18}/> }))); }).catch(() => undefined).finally(() => setLoadingBooking(false)); }, [realtimeRefresh]);
   const liveBooking = travelerBookings.find((booking) => booking.id === selectedBookingId) ?? travelerBookings[0] ?? null;
+  const onRealtimeChange = useCallback(() => setRealtimeRefresh((value) => value + 1), []);
+  useBookingRealtime(liveBooking?.id, onRealtimeChange);
 
   if (ready && !traveler) return <NewTravelerDashboard name="Traveler"/>;
   if (ready && traveler && !loadingBooking && !liveBooking) return <NewTravelerDashboard name={traveler.name}/>;

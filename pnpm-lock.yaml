@@ -97,6 +97,9 @@ importers:
       '@swatstay/types':
         specifier: workspace:*
         version: link:../../packages/types
+      '@supabase/supabase-js':
+        specifier: ^2.116.0
+        version: 2.116.0
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
